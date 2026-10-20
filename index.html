@@ -1,12 +1,433 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Data with Kim</title>
+  <meta name="description" content="Kim Nguyen's data engineering journey — learning, building and sharing in public.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --panel: #121722;
+      --panel-2: #171d2b;
+      --line: #232b3d;
+      --text: #e6e9f0;
+      --muted: #8b93a7;
+      --lime: #c6f432;
+      --cyan: #38bdf8;
+      --pink: #f472b6;
+      --amber: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    /* grid background */
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -1;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
+      opacity: .55;
+    }
+    a { color: var(--lime); text-decoration: none; }
+    .mono { font-family: "JetBrains Mono", monospace; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(11,14,20,.75); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    nav .wrap { display: flex; justify-content: space-between; align-items: center; height: 62px; }
+    .logo { font-family: "JetBrains Mono", monospace; font-weight: 600; color: var(--text); }
+    .logo b { color: var(--lime); }
+    .logo .cursor { display: inline-block; width: 8px; height: 16px; background: var(--lime); margin-left: 3px; vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    nav ul { display: flex; gap: 26px; list-style: none; font-size: 15px; }
+    nav ul a { color: var(--muted); transition: color .2s; }
+    nav ul a:hover { color: var(--lime); }
+
+    /* HERO */
+    .hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center; padding: 90px 0 70px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--lime);
+      border: 1px solid rgba(198,244,50,.35); background: rgba(198,244,50,.07);
+      padding: 6px 12px; border-radius: 999px; margin-bottom: 22px;
+    }
+    .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 10px var(--lime); animation: pulse 2s infinite; }
+    @keyframes pulse { 50% { opacity: .35; } }
+    h1 { font-size: clamp(40px, 6.5vw, 72px); line-height: 1; letter-spacing: -.03em; font-weight: 700; margin-bottom: 22px; }
+    h1 .grad {
+      background: linear-gradient(90deg, var(--lime), var(--cyan) 55%, var(--pink));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .lead { color: var(--muted); font-size: 19px; max-width: 40ch; margin-bottom: 30px; }
+    .btns { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn {
+      font-family: "JetBrains Mono", monospace; font-size: 14px; font-weight: 600;
+      padding: 12px 20px; border-radius: 10px; border: 1px solid var(--line); color: var(--text);
+      transition: transform .15s, border-color .2s, box-shadow .2s;
+    }
+    .btn:hover { transform: translateY(-2px); border-color: var(--lime); }
+    .btn.primary { background: var(--lime); color: #0b0e14; border-color: var(--lime); }
+    .btn.primary:hover { box-shadow: 0 8px 30px rgba(198,244,50,.3); }
+
+    /* TERMINAL */
+    .terminal {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.02);
+    }
+    .term-bar { display: flex; align-items: center; gap: 7px; padding: 12px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+    .term-bar i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+    .term-bar i:nth-child(1) { background: #ff5f57; }
+    .term-bar i:nth-child(2) { background: #febc2e; }
+    .term-bar i:nth-child(3) { background: #28c840; }
+    .term-bar span { margin-left: 10px; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); }
+    #term { font-family: "JetBrains Mono", monospace; font-size: 13.5px; padding: 18px; min-height: 290px; white-space: pre-wrap; }
+    #term .p { color: var(--lime); }
+    #term .c { color: var(--text); }
+    #term .o { color: var(--muted); }
+    #term .h { color: var(--cyan); }
+    #term .caret { display: inline-block; width: 8px; height: 15px; background: var(--text); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+
+    /* SECTIONS */
+    section { padding: 80px 0; }
+    .label { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--lime); margin-bottom: 10px; }
+    h2 { font-size: clamp(30px, 4.5vw, 44px); letter-spacing: -.02em; line-height: 1.1; margin-bottom: 14px; }
+    .sub { color: var(--muted); max-width: 60ch; margin-bottom: 40px; }
+
+    /* PIPELINE */
+    .pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; position: relative; }
+    .stage {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; position: relative;
+      transition: border-color .2s, transform .2s;
+    }
+    .stage:hover { border-color: var(--c); transform: translateY(-3px); }
+    .stage .num { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--c); }
+    .stage h3 { font-size: 22px; margin: 6px 0 8px; }
+    .stage p { color: var(--muted); font-size: 15px; }
+    .stage .tool { margin-top: 14px; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--c); opacity: .85; }
+    .flow { height: 4px; margin: 26px 0 0; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; }
+    .flow::after {
+      content: ""; position: absolute; top: 0; left: -30%; width: 30%; height: 100%;
+      background: linear-gradient(90deg, transparent, var(--lime), var(--cyan), transparent);
+      animation: flow 2.6s linear infinite;
+    }
+    @keyframes flow { to { left: 100%; } }
+
+    /* NOTES */
+    .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .note {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px;
+      display: flex; flex-direction: column; color: var(--text); transition: border-color .2s, transform .2s;
+    }
+    .note:hover { border-color: var(--lime); transform: translateY(-3px); }
+    .note .meta { display: flex; justify-content: space-between; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+    .note h3 { font-size: 19px; line-height: 1.3; margin-bottom: 8px; }
+    .note p { color: var(--muted); font-size: 14.5px; flex: 1; margin-bottom: 14px; }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tag { font-family: "JetBrains Mono", monospace; font-size: 11.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--cyan); }
+    .note.soon { border-style: dashed; opacity: .6; }
+
+    /* ROADMAP */
+    .roadmap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
+    .step { display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+    .step .ic { font-family: "JetBrains Mono", monospace; font-size: 14px; }
+    .step .name { font-weight: 500; }
+    .bar { width: 120px; height: 6px; background: var(--line); border-radius: 6px; overflow: hidden; }
+    .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--lime), var(--cyan)); border-radius: 6px; width: 0; transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+    .done .ic { color: var(--lime); }
+    .doing .ic { color: var(--amber); }
+    .todo .ic, .todo .name { color: var(--muted); }
+
+    /* PROJECTS */
+    .projects { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .project {
+      background: linear-gradient(160deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--line); border-radius: 14px; padding: 26px; transition: border-color .2s;
+    }
+    .project:hover { border-color: var(--pink); }
+    .project .kind { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--pink); }
+    .project h3 { font-size: 22px; margin: 6px 0 10px; }
+    .project p { color: var(--muted); font-size: 15px; margin-bottom: 16px; }
+
+    /* CONTACT */
+    .contact {
+      text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+      padding: 60px 24px; position: relative; overflow: hidden;
+    }
+    .contact::before {
+      content: ""; position: absolute; width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(198,244,50,.18), transparent 70%);
+      top: -200px; left: 50%; transform: translateX(-50%);
+    }
+    .contact h2, .contact p, .contact .btns { position: relative; }
+    .contact p { color: var(--muted); max-width: 48ch; margin: 0 auto 28px; }
+    .contact .btns { justify-content: center; }
+
+    footer { padding: 40px 0; color: var(--muted); font-size: 14px; }
+    footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; border-top: 1px solid var(--line); padding-top: 24px; }
+
+    /* reveal on scroll */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s, transform .7s; }
+    .reveal.in { opacity: 1; transform: none; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; padding: 56px 0 40px; }
+      .pipeline, .notes, .projects, .roadmap { grid-template-columns: 1fr; }
+      nav ul { display: none; }
+      .bar { width: 80px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+  </style>
 </head>
 <body>
-  <h1>Data with Kim</h1>
-  <p>Data engineering, BI and AI — coming soon.</p>
+
+  <nav>
+    <div class="wrap">
+      <a class="logo" href="#">datawithkim<b>.dev</b><span class="cursor"></span></a>
+      <ul>
+        <li><a href="#system">System</a></li>
+        <li><a href="#notes">Notes</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+        <li><a href="#projects">Projects</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="wrap hero">
+    <div>
+      <div class="badge"><span class="dot"></span> learning in public · 2026</div>
+      <h1>Building my<br><span class="grad">data engineering</span><br>journey, in public.</h1>
+      <p class="lead">I'm Kim Nguyen — I study, build pipelines, break things, fix them, and write down everything I learn here.</p>
+      <div class="btns">
+        <a class="btn primary" href="#notes">$ read --notes</a>
+        <a class="btn" href="#roadmap">view roadmap →</a>
+      </div>
+    </div>
+
+    <div class="terminal" aria-label="Terminal introduction">
+      <div class="term-bar"><i></i><i></i><i></i><span>kim@datawithkim: ~</span></div>
+      <div id="term"></div>
+    </div>
+  </header>
+
+  <!-- SYSTEM -->
+  <section id="system" class="reveal">
+    <div class="wrap">
+      <p class="label">// 01 — the system</p>
+      <h2>Learn → Write → Publish → Share</h2>
+      <p class="sub">This site is itself a data pipeline: notes are written once, then flow automatically from my workspace to the web.</p>
+      <div class="pipeline">
+        <div class="stage" style="--c: var(--lime)">
+          <div class="num">01 / extract</div>
+          <h3>Learn</h3>
+          <p>Courses, labs, real work problems and late-night debugging.</p>
+          <div class="tool">linux · sql · python</div>
+        </div>
+        <div class="stage" style="--c: var(--cyan)">
+          <div class="num">02 / transform</div>
+          <h3>Write</h3>
+          <p>Every session becomes a structured note in my Learning Hub.</p>
+          <div class="tool">notion</div>
+        </div>
+        <div class="stage" style="--c: var(--amber)">
+          <div class="num">03 / load</div>
+          <h3>Publish</h3>
+          <p>A scheduled pipeline converts notes to Markdown and deploys them.</p>
+          <div class="tool">git · github actions</div>
+        </div>
+        <div class="stage" style="--c: var(--pink)">
+          <div class="num">04 / serve</div>
+          <h3>Share</h3>
+          <p>RSS feed, LinkedIn posts and automations built with n8n.</p>
+          <div class="tool">rss · n8n</div>
+        </div>
+      </div>
+      <div class="flow"></div>
+    </div>
+  </section>
+
+  <!-- NOTES -->
+  <section id="notes" class="reveal">
+    <div class="wrap">
+      <p class="label">// 02 — latest notes</p>
+      <h2>Study log.</h2>
+      <p class="sub">Short, practical notes from each study session — commands, mistakes, and what actually clicked.</p>
+      <div class="notes">
+        <a class="note" href="#">
+          <div class="meta"><span>2026-10-19</span><span>5 min</span></div>
+          <h3>From zero to datawithkim.dev with Git &amp; GitHub Pages</h3>
+          <p>Buying a domain, DNS A records, the CNAME file, and why my DNS check failed at first.</p>
+          <div class="tags"><span class="tag">git</span><span class="tag">dns</span><span class="tag">github-pages</span></div>
+        </a>
+        <a class="note" href="#">
+          <div class="meta"><span>2026-10-13</span><span>7 min</span></div>
+          <h3>Linux Journey — The Shell</h3>
+          <p>Navigating the file system, pwd, cd, ls flags, and file operations without fear.</p>
+          <div class="tags"><span class="tag">linux</span><span class="tag">bash</span></div>
+        </a>
+        <div class="note soon">
+          <div class="meta"><span>coming soon</span><span>—</span></div>
+          <h3>Next up: Bash scripting</h3>
+          <p>Variables, loops and my first automation script.</p>
+          <div class="tags"><span class="tag">bash</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section id="roadmap" class="reveal">
+    <div class="wrap">
+      <p class="label">// 03 — roadmap</p>
+      <h2>Where I am on the path.</h2>
+      <p class="sub">My data engineering roadmap, updated as I go.</p>
+      <div class="roadmap">
+        <div class="step done"><span class="ic">✓</span><span class="name">Linux &amp; the shell</span><div class="bar"><span data-w="100"></span></div></div>
+        <div class="step doing"><span class="ic">◐</span><span class="name">SQL (advanced)</span><div class="bar"><span data-w="70"></span></div></div>
+        <div class="step doing"><span class="ic">◐</span><span class="name">Bash scripting</span><div class="bar"><span data-w="45"></span></div></div>
+        <div class="step doing"><span class="ic">◐</span><span class="name">Python for data</span><div class="bar"><span data-w="60"></span></div></div>
+        <div class="step doing"><span class="ic">◐</span><span class="name">Git &amp; CI/CD</span><div class="bar"><span data-w="35"></span></div></div>
+        <div class="step todo"><span class="ic">○</span><span class="name">Docker</span><div class="bar"><span data-w="10"></span></div></div>
+        <div class="step todo"><span class="ic">○</span><span class="name">Orchestration (Airflow, n8n)</span><div class="bar"><span data-w="5"></span></div></div>
+        <div class="step todo"><span class="ic">○</span><span class="name">Cloud data platforms</span><div class="bar"><span data-w="15"></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section id="projects" class="reveal">
+    <div class="wrap">
+      <p class="label">// 04 — projects</p>
+      <h2>Things I've built.</h2>
+      <p class="sub">Real pipelines, dashboards and experiments.</p>
+      <div class="projects">
+        <div class="project">
+          <div class="kind">meta · pipeline</div>
+          <h3>datawithkim.dev</h3>
+          <p>This site: a Notion → Markdown → GitHub Pages publishing pipeline, with an RSS feed for downstream automations.</p>
+          <div class="tags"><span class="tag">git</span><span class="tag">notion-api</span><span class="tag">github-actions</span></div>
+        </div>
+        <div class="project">
+          <div class="kind">business intelligence</div>
+          <h3>Multi-company sales reporting</h3>
+          <p>A consolidated Power BI model replacing legacy reports with one source of truth for sales across several companies.</p>
+          <div class="tags"><span class="tag">power-bi</span><span class="tag">dax</span><span class="tag">sql</span></div>
+        </div>
+        <div class="project">
+          <div class="kind">data engineering</div>
+          <h3>ERP ETL pipelines</h3>
+          <p>Pipelines integrating ERP data across sites, feeding an international inventory dashboard.</p>
+          <div class="tags"><span class="tag">etl</span><span class="tag">sql-server</span></div>
+        </div>
+        <div class="project">
+          <div class="kind">study project</div>
+          <h3>n8n automation lab</h3>
+          <p>Self-hosted n8n with Docker, consuming my RSS feed to experiment with sharing workflows.</p>
+          <div class="tags"><span class="tag">n8n</span><span class="tag">docker</span><span class="tag">rss</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact" class="reveal">
+    <div class="wrap">
+      <div class="contact">
+        <p class="label">// 05 — contact</p>
+        <h2>Let's talk data.</h2>
+        <p>Learning something similar, hiring, or just curious? I'd love to hear from you.</p>
+        <div class="btns">
+          <a class="btn primary" href="mailto:you@example.com">$ send --email</a>
+          <a class="btn" href="https://github.com/dottienguyen23" target="_blank" rel="noopener">GitHub</a>
+          <a class="btn" href="https://www.linkedin.com/in/YOUR-LINKEDIN" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <span>© <span id="yr">2026</span> Kim Nguyen</span>
+      <span class="mono">git push origin main · served by GitHub Pages</span>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // Typing terminal
+    var lines = [
+      { t: 'cmd', s: 'whoami' },
+      { t: 'out', s: 'kim nguyen — data engineer in progress' },
+      { t: 'cmd', s: 'cat stack.txt' },
+      { t: 'hl',  s: 'sql · python · bash · power bi · git' },
+      { t: 'cmd', s: 'tail -n 3 learning.log' },
+      { t: 'out', s: '[ok] linux: the shell\n[ok] git + github pages + custom domain\n[..] bash scripting' },
+      { t: 'cmd', s: './publish.sh --to datawithkim.dev' },
+      { t: 'hl',  s: '✔ deployed. see you in the notes.' }
+    ];
+    var term = document.getElementById('term');
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+    if (reduce) {
+      term.innerHTML = lines.map(function (l) {
+        return l.t === 'cmd' ? '<span class="p">$ </span><span class="c">' + esc(l.s) + '</span>'
+             : '<span class="' + (l.t === 'hl' ? 'h' : 'o') + '">' + esc(l.s) + '</span>';
+      }).join('\n');
+    } else {
+      var html = '', i = 0;
+      function next() {
+        if (i >= lines.length) { term.innerHTML = html + '\n<span class="p">$ </span><span class="caret"></span>'; return; }
+        var l = lines[i++];
+        if (l.t === 'cmd') {
+          var j = 0, prefix = html + (html ? '\n' : '') + '<span class="p">$ </span>';
+          (function type() {
+            term.innerHTML = prefix + '<span class="c">' + esc(l.s.slice(0, j)) + '</span><span class="caret"></span>';
+            if (j++ < l.s.length) setTimeout(type, 38 + Math.random() * 40);
+            else { html = prefix + '<span class="c">' + esc(l.s) + '</span>'; setTimeout(next, 350); }
+          })();
+        } else {
+          html += '\n<span class="' + (l.t === 'hl' ? 'h' : 'o') + '">' + esc(l.s) + '</span>';
+          term.innerHTML = html;
+          setTimeout(next, 500);
+        }
+      }
+      setTimeout(next, 500);
+    }
+
+    // Reveal on scroll + fill roadmap bars
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        e.target.classList.add('in');
+        e.target.querySelectorAll('.bar span').forEach(function (b) { b.style.width = b.dataset.w + '%'; });
+        io.unobserve(e.target);
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+  </script>
 </body>
 </html>
