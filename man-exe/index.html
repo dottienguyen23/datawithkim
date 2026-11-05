@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Man.exe Setup</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="You have been selected to install Man.exe. Saturday 21 November 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600;700&display=swap">
+<style>
+/* Layout: a retro setup-wizard dialog on a dithered desktop; step rail on the left, pages on the right. Single deliberate light look. */
+:root{
+  --desk:#2F4A44;        /* cilantro-dark desktop */
+  --desk-dot:#3A5A53;
+  --win:#E6E1D6;         /* dialog grey-beige */
+  --win-hi:#FBF9F4;
+  --win-lo:#8E877A;
+  --win-shadow:#1E1C18;
+  --ink:#1E1C18;
+  --muted:#58524A;
+  --title:#7A2E1E;       /* broth-chili title bar */
+  --title-ink:#FBF3EA;
+  --accent:#2F6B5A;      /* progress / selection */
+  --accent-ink:#FFFFFF;
+  --field:#FFFFFF;
+  --f-display:"VT323", "Courier New", monospace;
+  --f-body:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  background-color:var(--desk);
+  background-image:radial-gradient(var(--desk-dot) 1px, transparent 1.2px);
+  background-size:4px 4px;
+  color:var(--ink);
+  font:15px/1.55 var(--f-body);
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;
+  padding-block:max(32px, env(safe-area-inset-top, 0px)) max(32px, env(safe-area-inset-bottom, 0px));
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- window chrome ---------- */
+.win{
+  width:100%;max-width:640px;
+  background:var(--win);
+  border:2px solid;
+  border-color:var(--win-hi) var(--win-shadow) var(--win-shadow) var(--win-hi);
+  box-shadow:inset -2px -2px 0 var(--win-lo), inset 2px 2px 0 #fff, 6px 8px 0 rgba(0,0,0,.28);
+  padding:3px;
+}
+.titlebar{
+  display:flex;align-items:center;gap:10px;
+  background:var(--title);color:var(--title-ink);
+  padding:5px 6px 5px 10px;
+  font-weight:700;font-size:14px;letter-spacing:.02em;
+}
+.titlebar .name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.titlebar .chip{
+  width:22px;height:20px;display:grid;place-items:center;
+  background:var(--win);color:var(--ink);font-size:12px;line-height:1;
+  border:2px solid;border-color:var(--win-hi) var(--win-shadow) var(--win-shadow) var(--win-hi);
+}
+.app-icon{width:18px;height:18px;flex:none}
+
+.body{display:grid;grid-template-columns:168px minmax(0,1fr);gap:0;margin-top:3px}
+.rail{
+  background:var(--accent);color:var(--accent-ink);
+  padding:18px 14px;display:flex;flex-direction:column;gap:14px;
+  border:2px solid;border-color:var(--win-lo) var(--win-hi) var(--win-hi) var(--win-lo);
+}
+.rail .logo{font-family:var(--f-display);font-size:44px;line-height:.9;letter-spacing:.01em}
+.rail .ver{font-size:12px;opacity:.85}
+.rail ol{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.rail li{display:flex;gap:8px;align-items:center;opacity:.6}
+.rail li::before{content:"";width:9px;height:9px;border:2px solid currentColor;flex:none}
+.rail li.done{opacity:.85}
+.rail li.done::before{background:currentColor}
+.rail li.now{opacity:1;font-weight:700}
+.rail li.now::before{background:var(--title-ink);border-color:var(--title-ink)}
+
+.page{padding:22px 22px 18px;display:flex;flex-direction:column;gap:14px;min-height:360px}
+.page h1{font-family:var(--f-display);font-weight:400;font-size:38px;line-height:1;margin:0;text-wrap:balance}
+.page p{margin:0;text-wrap:pretty}
+.muted{color:var(--muted)}
+.step{display:flex;flex-direction:column;gap:14px;flex:1}
+.step[hidden]{display:none!important}
+
+.inset{
+  background:var(--field);
+  border:2px solid;border-color:var(--win-lo) var(--win-hi) var(--win-hi) var(--win-lo);
+  box-shadow:inset 1px 1px 0 var(--win-shadow);
+  padding:12px 14px;
+}
+.license{max-height:190px;overflow:auto;font-size:13px}
+.license ol{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:6px}
+
+label.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14px}
+input[type=checkbox],input[type=radio]{width:18px;height:18px;margin:2px 0 0;accent-color:var(--accent);flex:none}
+
+.versions{display:flex;flex-direction:column;gap:8px}
+.version{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;cursor:pointer;border:2px solid transparent}
+.version:has(input:checked){border-color:var(--accent);background:#EEF5F2}
+.version b{display:block;font-size:14px}
+.version span{font-size:13px;color:var(--muted);display:block}
+.version q{display:block;font-family:var(--f-display);font-size:22px;line-height:1.1;color:var(--title);quotes:none;margin:2px 0}
+
+.bar{height:26px;padding:3px;display:flex;gap:3px;overflow:hidden}
+.bar i{display:block;width:12px;flex:none;background:var(--accent)}
+.pct{font-family:var(--f-display);font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.log{font-size:13px;min-height:6.5em;display:flex;flex-direction:column;gap:2px}
+.log div::before{content:"> ";color:var(--accent);font-weight:700}
+
+.details{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;font-size:14px}
+.details dt{color:var(--muted)}
+.details dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.badge{
+  display:inline-block;background:var(--title);color:var(--title-ink);
+  padding:2px 8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+}
+.big-date{font-family:var(--f-display);font-size:44px;line-height:1;color:var(--title)}
+
+.footer{
+  display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;
+  padding:12px 22px 16px;border-top:2px solid var(--win-lo);box-shadow:inset 0 1px 0 var(--win-hi);
+}
+button{
+  font:600 14px var(--f-body);color:var(--ink);
+  min-width:104px;min-height:40px;padding:6px 14px;cursor:pointer;
+  background:var(--win);
+  border:2px solid;border-color:var(--win-hi) var(--win-shadow) var(--win-shadow) var(--win-hi);
+  box-shadow:inset -1px -1px 0 var(--win-lo);
+}
+button:active:not(:disabled){border-color:var(--win-shadow) var(--win-hi) var(--win-hi) var(--win-shadow);box-shadow:inset 1px 1px 0 var(--win-lo)}
+button:disabled{color:var(--win-lo);cursor:not-allowed}
+button:focus-visible,.version:focus-within,label.check:focus-within{outline:2px dashed var(--ink);outline-offset:2px}
+button.primary{font-weight:700}
+
+.file-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--title)}
+.reveal{display:flex;flex-direction:column;gap:12px;font-size:14px}
+.reveal .sign{font-family:var(--f-display);font-size:26px;line-height:1;color:var(--accent)}
+.rsvp{display:flex;flex-direction:column;gap:12px;font-size:14px}
+.field{display:flex;flex-direction:column;gap:6px;border:0;margin:0;padding:0;min-width:0}
+.field legend{padding:0;margin-bottom:6px}
+.field input[type=text],.field textarea{
+  font:14px var(--f-body);color:var(--ink);background:var(--field);width:100%;padding:8px 10px;
+  border:2px solid;border-color:var(--win-lo) var(--win-hi) var(--win-hi) var(--win-lo);box-shadow:inset 1px 1px 0 var(--win-shadow);
+}
+.field input:focus-visible,.field textarea:focus-visible{outline:2px dashed var(--ink);outline-offset:2px}
+.send-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.status{margin:0;font-size:13px;flex:1;min-width:0}
+.status.ok{color:var(--accent);font-weight:700}
+.status.err{color:var(--title);font-weight:700}
+.hero{display:flex;gap:16px;align-items:flex-start}
+.hero h1{flex:1;min-width:0}
+.cat{margin:0;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;width:112px}
+.cat svg{width:96px;height:96px;display:block;image-rendering:pixelated}
+.cat figcaption{font-size:11px;line-height:1.3;color:var(--muted);text-align:center}
+.cat.small{width:auto}
+.cat.small svg{width:56px;height:56px}
+.signoff{display:flex;gap:12px;align-items:center}
+.signoff p{flex:1;min-width:0}
+@media (max-width:560px){.cat{width:88px}.cat svg{width:72px;height:72px}}
+.caption{color:#D9E6E1;font-size:12px;text-align:center;margin-top:14px}
+.wrap{width:100%;max-width:640px}
+
+@media (max-width:560px){
+  .body{grid-template-columns:minmax(0,1fr)}
+  .rail{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:12px 14px}
+  .rail .logo{font-size:34px}
+  .rail ol{flex-direction:row;flex-wrap:wrap;gap:4px 10px;margin:0;width:100%;font-size:12px}
+  .page{padding:18px 16px 14px;min-height:0}
+  .footer{padding:12px 16px 14px}
+  button{flex:1 1 120px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<main class="win" aria-labelledby="win-title">
+  <div class="titlebar">
+    <svg class="app-icon" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="2" width="16" height="11" fill="#FBF3EA"/><rect x="3" y="4" width="12" height="7" fill="#2F6B5A"/><rect x="6" y="14" width="6" height="2" fill="#FBF3EA"/></svg>
+    <span class="name" id="win-title">Man.exe Setup</span>
+    <span class="chip" aria-hidden="true">_</span>
+    <span class="chip" aria-hidden="true">□</span>
+    <span class="chip" aria-hidden="true">×</span>
+  </div>
+
+  <div class="body">
+    <aside class="rail" aria-label="Setup steps">
+      <div>
+        <div class="logo">Man.exe</div>
+        <div class="ver">Build 2026.11.21</div>
+      </div>
+      <ol id="rail">
+        <li>Welcome</li><li>License</li><li>Version</li><li>Install</li><li>Finish</li><li>For you</li>
+      </ol>
+    </aside>
+
+    <div class="page">
+      <!-- 1 Welcome -->
+      <section class="step" data-step="0">
+        <div class="hero">
+          <h1>Welcome to the Man.exe Setup Wizard</h1>
+          <figure class="cat"><div data-cat></div><figcaption>Cache the cat, your setup assistant</figcaption></figure>
+        </div>
+        <p>You have been selected to install <b>Man.exe</b> on one of your Saturdays.</p>
+        <p class="muted">Setup is free and takes about one afternoon. No laptop or work email required. Click <b>Next</b> to continue.</p>
+      </section>
+
+      <!-- 2 License -->
+      <section class="step" data-step="1" hidden>
+        <h1>License agreement</h1>
+        <p class="muted">Please read the terms below.</p>
+        <div class="inset license" tabindex="0" aria-label="License terms">
+          <ol>
+            <li>The licensee arrives hungry. Food is installed on site.</li>
+            <li>The licensee may lose at video games and board games, and accepts this with dignity.</li>
+            <li>Phones are permitted only to check scores and take photos.</li>
+            <li>The licensee shares at least one tech opinion, new or vintage.</li>
+            <li>The licensee is allowed to relax, talk, laugh and recharge. No performance review applies.</li>
+            <li>Further details are classified until runtime.</li>
+          </ol>
+        </div>
+        <label class="check"><input type="checkbox" id="accept"> I accept the terms of the Man.exe license agreement</label>
+      </section>
+
+      <!-- 3 Version -->
+      <section class="step" data-step="2" hidden>
+        <h1>Select your version</h1>
+        <p class="muted">Be honest. What do you usually say about your age? All versions are fully supported.</p>
+        <div class="versions" role="radiogroup" aria-label="Version">
+          <label class="version inset"><input type="radio" name="version" id="v-beta" value="Beta"><div><b>Beta</b><q>"I'm young."</q><span>Roughly under 30. New features, still testing, runs on energy drinks and 5 hours of sleep.</span></div></label>
+          <label class="version inset"><input type="radio" name="version" id="v-stable" value="Stable Release"><div><b>Stable Release</b><q>"I'm not young anymore."</q><span>Roughly 30 to 50. Reliable, fully patched, back makes a sound when standing up.</span></div></label>
+          <label class="version inset"><input type="radio" name="version" id="v-legacy" value="Legacy Edition"><div><b>Legacy Edition</b><q>"I'm legacy level."</q><span>50 and beyond. Vintage hardware, remembers dial-up, still runs better than the new models.</span></div></label>
+        </div>
+      </section>
+
+      <!-- 4 Install -->
+      <section class="step" data-step="3" hidden>
+        <h1>Installing Man.exe</h1>
+        <p class="muted" id="install-status">Please wait while Setup prepares your Saturday.</p>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="inset bar" style="flex:1;min-width:0" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="bar"></div>
+          <span class="pct" id="pct">0%</span>
+        </div>
+        <div class="inset log" id="log" aria-live="polite"></div>
+      </section>
+
+      <!-- 5 Finish -->
+      <section class="step" data-step="4" hidden>
+        <h1>Installation scheduled</h1>
+        <p>The last 1% can only be installed in person.</p>
+        <div class="inset" style="display:flex;flex-direction:column;gap:12px">
+          <div class="big-date" id="f-date"></div>
+          <dl class="details">
+            <dt>Time</dt><dd id="f-time"></dd>
+            <dt>Location</dt><dd id="f-place"></dd>
+            <dt>Bring</dt><dd>Yourself and an appetite</dd>
+            <dt>Your build</dt><dd><span class="badge" id="f-version">Stable Release</span></dd>
+            <dt>RSVP</dt><dd id="f-rsvp"></dd>
+          </dl>
+        </div>
+        <div class="signoff">
+          <figure class="cat small"><div data-cat></div></figure>
+          <p class="muted"><b>meow.exe:</b> Do not shut down your Saturday. Click <b>Finish</b> to open one more file.</p>
+        </div>
+      </section>
+
+      <!-- 6 Reveal -->
+      <section class="step" data-step="5" hidden>
+        <p class="file-label">Hidden file unlocked: README_for_you.txt</p>
+        <h1>Surprise. This day is for you.</h1>
+        <div class="inset reveal">
+          <p><span class="badge" id="r-version">Stable Release</span></p>
+          <p id="r-message"></p>
+          <p>Man.exe is a day made for you. Men carry a lot and often keep it quiet, so this Saturday is simple: good food, games, laughs, and time to talk. Nothing to fix, nothing to prove.</p>
+          <p class="sign">With care, Kim</p>
+        </div>
+        <div class="signoff">
+          <figure class="cat small"><div data-cat></div></figure>
+          <p class="muted"><b>meow.exe:</b> you matter. Please keep this a secret from the others until Saturday.</p>
+        </div>
+
+        <form class="inset rsvp" id="rsvp" novalidate>
+          <p class="file-label">Send a reply to Kim</p>
+          <div class="field">
+            <label for="r-name">Your name</label>
+            <input type="text" id="r-name" name="name" autocomplete="name" required>
+          </div>
+          <fieldset class="field">
+            <legend>Will you install Man.exe on Saturday?</legend>
+            <label class="check"><input type="radio" name="coming" id="r-yes" value="Yes, I'm coming" checked> Yes, I'm coming</label>
+            <label class="check"><input type="radio" name="coming" id="r-no" value="Sorry, I can't make it"> Sorry, I can't make it</label>
+          </fieldset>
+          <div class="field">
+            <label for="r-msg">Message or feedback (optional)</label>
+            <textarea id="r-msg" name="message" rows="3"></textarea>
+          </div>
+          <div class="send-row">
+            <button type="submit" id="r-send">Send reply</button>
+            <p class="status" id="r-status" role="status"></p>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button type="button" id="back">&lt; Back</button>
+    <button type="button" id="next" class="primary">Next &gt;</button>
+  </div>
+</main>
+<p class="caption">Man.exe · a secret project by Kim</p>
+</div>
+
+<script>
+/* ===== Edit these before you deploy ===== */
+const INVITE = {
+  date:  "Sat 21 Nov 2026",
+  time:  "Revealed soon",
+  place: "Classified. Coordinates sent by message",
+  rsvp:  "Use the reply form on the last screen",
+  /* Your Formspree form ID, e.g. "xyzabcde" from https://formspree.io/f/xyzabcde */
+  formspreeId: "xkjjyyvy"
+};
+/* ======================================== */
+
+const steps = [...document.querySelectorAll(".step")];
+const railItems = [...document.querySelectorAll("#rail li")];
+const back = document.getElementById("back");
+const next = document.getElementById("next");
+const accept = document.getElementById("accept");
+const bar = document.getElementById("bar");
+const pct = document.getElementById("pct");
+const log = document.getElementById("log");
+let current = 0, installed = false, timer = null;
+
+document.getElementById("f-date").textContent = INVITE.date;
+document.getElementById("f-time").textContent = INVITE.time;
+document.getElementById("f-place").textContent = INVITE.place;
+document.getElementById("f-rsvp").textContent = INVITE.rsvp;
+
+/* Pixel cat: K outline, O fur, W white, P nose */
+const CAT = [
+  ".K..........K...",
+  ".KK........KK...",
+  ".KOK......KOK...",
+  ".KOOKKKKKKOOK...",
+  ".KOOOOOOOOOOK...",
+  "KOOKKOOOOKKOOK..",
+  "KOOOOOPPOOOOOK..",
+  "KOOOWWWWWWOOOK..",
+  ".KOOWWWWWWOOK...",
+  "..KOOOOOOOOK....",
+  ".KOOOWWWWOOOK...",
+  "KOOOWWWWWWOOOK.K",
+  "KOOOWWWWWWOOOKOK",
+  "KOOWWKWWKWWOOKK.",
+  ".KKKKKKKKKKKKK.."
+];
+const CAT_COLORS = { K:"#1E1C18", O:"#D98A3A", W:"#FBF9F4", P:"#E89AA8" };
+function catSVG() {
+  let r = "";
+  CAT.forEach((row, y) => [...row].forEach((c, x) => {
+    if (CAT_COLORS[c]) r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${CAT_COLORS[c]}"/>`;
+  }));
+  return `<svg viewBox="0 -0.5 16 16" shape-rendering="crispEdges" role="img" aria-label="Pixel cat">${r}</svg>`;
+}
+document.querySelectorAll("[data-cat]").forEach(el => { el.innerHTML = catSVG(); });
+
+/* 26 progress blocks */
+const BLOCKS = 26;
+for (let i = 0; i < BLOCKS; i++) { const b = document.createElement("i"); b.hidden = true; bar.appendChild(b); }
+
+const chosenVersion = () => (document.querySelector('input[name="version"]:checked') || {}).value;
+
+function canGoNext() {
+  if (current === 1) return accept.checked;
+  if (current === 2) return !!chosenVersion();
+  if (current === 3) return installed;
+  return true;
+}
+
+function render() {
+  steps.forEach((s, i) => { s.hidden = i !== current; });
+  railItems.forEach((li, i) => {
+    li.className = i < current ? "done" : i === current ? "now" : "";
+    if (i === current) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+  });
+  back.disabled = current === 0 || current === 3;
+  next.textContent = current === 5 ? "See you Saturday" : current === 4 ? "Finish" : current === 2 ? "Install" : "Next >";
+  next.disabled = current === 5 || !canGoNext();
+  const v = chosenVersion() || "Stable Release";
+  if (current === 4) document.getElementById("f-version").textContent = v;
+  if (current === 5) {
+    document.getElementById("r-version").textContent = v;
+    document.getElementById("r-message").textContent = MESSAGES[v];
+  }
+}
+
+const MESSAGES = {
+  "Beta": "You're still finding your way, and that's allowed. On Saturday nobody expects you to have it all figured out. Come as you are, eat a lot, and enjoy being one of the guys.",
+  "Stable Release": "You keep things running for everyone around you: work, family, friends. This Saturday someone else runs the system. Your only job is to relax.",
+  "Legacy Edition": "You've carried a lot for many years, and you've taught the younger ones more than you know. This day is our way of saying thank you."
+};
+
+function runInstall() {
+  if (installed) return;
+  const lines = [
+    "Unpacking pho broth (8 hours of simmering)...",
+    "Rolling cha gio, one at a time...",
+    "Charging controllers...",
+    "Shuffling board games...",
+    "Loading tech talk from Beta to Legacy...",
+    "Reserving a comfortable chair for you..."
+  ];
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let p = 0, line = 0;
+  const tick = () => {
+    p = Math.min(99, p + (p < 80 ? 3 : 1));
+    const filled = Math.round(BLOCKS * p / 100);
+    [...bar.children].forEach((b, i) => { b.hidden = i >= filled; });
+    bar.setAttribute("aria-valuenow", p);
+    pct.textContent = p + "%";
+    const due = Math.floor(p / (99 / lines.length));
+    while (line < Math.min(due, lines.length)) {
+      const d = document.createElement("div"); d.textContent = lines[line++]; log.appendChild(d);
+    }
+    if (p >= 99) {
+      clearInterval(timer);
+      document.getElementById("install-status").textContent = "Stuck at 99%. The last 1% needs you in person.";
+      installed = true; render();
+    }
+  };
+  if (reduce) { while (p < 99) tick(); } else { timer = setInterval(tick, 90); }
+}
+
+next.addEventListener("click", () => {
+  if (!canGoNext()) return;
+  if (current === 5) return;
+  current++;
+  render();
+  if (current === 3) runInstall();
+});
+back.addEventListener("click", () => { if (current > 0 && current !== 3) { current--; render(); } });
+accept.addEventListener("change", render);
+document.querySelectorAll('input[name="version"]').forEach(r => r.addEventListener("change", render));
+
+/* Reply form -> Formspree -> Kim's email */
+const form = document.getElementById("rsvp");
+const statusEl = document.getElementById("r-status");
+const sendBtn = document.getElementById("r-send");
+function setStatus(text, kind) { statusEl.textContent = text; statusEl.className = "status " + (kind || ""); }
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = document.getElementById("r-name").value.trim();
+  if (!name) { setStatus("Please write your name so Kim knows who replied.", "err"); document.getElementById("r-name").focus(); return; }
+  if (!INVITE.formspreeId || INVITE.formspreeId === "YOUR_FORM_ID") { setStatus("The reply form isn't set up yet. Message Kim directly instead.", "err"); return; }
+  const data = {
+    name,
+    coming: (form.querySelector('input[name="coming"]:checked') || {}).value,
+    message: document.getElementById("r-msg").value.trim(),
+    version: chosenVersion() || "Not picked",
+    _subject: "Man.exe reply from " + name
+  };
+  sendBtn.disabled = true; setStatus("Sending...");
+  try {
+    const res = await fetch("https://formspree.io/f/" + INVITE.formspreeId, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(res.status);
+    setStatus("Reply sent. Kim will read it soon.", "ok");
+    sendBtn.textContent = "Sent";
+  } catch (err) {
+    sendBtn.disabled = false;
+    setStatus("Couldn't send. Check your connection and try again, or message Kim directly.", "err");
+  }
+});
+
+render();
+</script>
+</body>
+</html>
