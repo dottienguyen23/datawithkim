@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ep XX · TITLE · SQL Quest</title>
+  <meta name="description" content="SQL Quest episode XX: ONE-LINE SUMMARY.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=VT323&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/pixel-study.css?v=1">
+  <script src="/assets/pixel-study.js?v=1" defer></script>
+</head>
+<!--
+  HOW TO MAKE A NEW EPISODE
+  1. Copy this folder to /sql/epXX-short-name/ and set data-ep="epXX" on <body>.
+  2. Fill each level: story → (lab) → (diagram) → hook → save point.
+  3. Every save point needs: a one-line tip, 2-4 <button class="term" data-def="..."> keywords,
+     and a checkbox <input type="checkbox" data-ch="N"> with a unique N.
+     The cat, glossary, progress bar, timer and quiz are added automatically by /assets/pixel-study.js.
+  4. Write the quiz in window.QUIZ at the bottom (a = index of the right option, w = explanation).
+  5. In /tmp/gen/episodes.py (or the hub HTML) set the episode status to "live".
+-->
+<body data-ep="epXX">
+
+  <nav>
+    <div class="wide">
+      <a class="logo" href="/">datawithkim<b>.dev</b></a>
+      <div class="nav-right">
+        <span class="xp" title="Levels you marked as cleared">★ <span id="xp">0/3</span><span class="long"> cleared</span></span>
+        <a href="/sql/">SQL Quest</a>
+        <a class="hide-sm" href="/#notes">← notes</a>
+      </div>
+    </div>
+    <div class="track" aria-hidden="true"></div>
+  </nav>
+
+  <header class="wide hero">
+    <div>
+      <div class="chip">SQL Quest · episode XX · world N</div>
+      <h1>EPISODE<br><span class="hl">TITLE</span></h1>
+      <p class="lead">The hook: what problem does this topic solve? Why should anyone care?</p>
+      <div class="meta"><span>YYYY-MM-DD</span><span>·</span><span>N min read</span><span>·</span><span class="t">#sql #topic</span></div>
+    </div>
+    <div>
+      <div class="px scene-box"><div class="scene-slot"></div></div>
+      <p class="scene-cap">study cat on duty (asleep)</p>
+    </div>
+  </header>
+
+  <article class="read">
+
+    <section class="coldopen reveal">
+      <p>Open with a real situation: "Your boss asks…", "The pipeline failed at 3 a.m. because…"</p>
+      <p class="big-idea">One sentence that sums up the whole episode.</p>
+    </section>
+
+    <section class="chapter reveal" id="ch1" style="--c: var(--mint)">
+      <div class="ch-head"><span class="ch-num">level 01</span><span class="ch-year">concept</span></div>
+      <h2>Level title</h2>
+      <p>Explain the idea in simple words, with one everyday comparison.</p>
+      <div class="px lab">
+        <span class="k">// lab</span>
+        <p>What I ran and what I saw. Put real output in a &lt;pre&gt; or as a diagram.</p>
+      </div>
+      <p class="hook">Cliffhanger into the next level →</p>
+      <div class="px save" style="--c: var(--mint)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">One-line takeaway.</p>
+          <div class="terms"><button class="term" data-def="Simple definition.">keyword</button></div>
+          <label class="clear"><input type="checkbox" data-ch="1"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch2" style="--c: var(--sky)">
+      <div class="ch-head"><span class="ch-num">level 02</span><span class="ch-year">compare</span></div>
+      <h2>A vs B</h2>
+      <p>Side-by-side comparison of two options, and when to use each.</p>
+      <div class="px save" style="--c: var(--sky)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">One-line takeaway.</p>
+          <div class="terms"><button class="term" data-def="Simple definition.">keyword</button></div>
+          <label class="clear"><input type="checkbox" data-ch="2"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch3" style="--c: var(--peach)">
+      <div class="ch-head"><span class="ch-num">level 03</span><span class="ch-year">DE angle</span></div>
+      <h2>In real data engineering</h2>
+      <p>Where this shows up in pipelines, warehouses and dashboards.</p>
+      <div class="px save" style="--c: var(--peach)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">One-line takeaway.</p>
+          <div class="terms"><button class="term" data-def="Simple definition.">keyword</button></div>
+          <label class="clear"><input type="checkbox" data-ch="3"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="section-title" id="glossary" style="--c: var(--lav)">Glossary</h2>
+    <p class="section-sub">All the new words from this episode.</p>
+    <dl class="gloss" id="gloss"></dl>
+
+    <h2 class="section-title" id="quiz" style="--c: var(--peach)">Boss level: quick quiz</h2>
+    <p class="section-sub">No pressure, the cat isn't grading.</p>
+    <div class="px quiz" id="quizbox"></div>
+
+    <section class="sources" id="sources">
+      <h3>// sources</h3>
+      <ol>
+        <li><a href="https://www.postgresql.org/docs/current/" target="_blank" rel="noopener">PostgreSQL documentation</a></li>
+      </ol>
+    </section>
+
+    <div class="ep-nav"><a class="px" href="/sql/">← all episodes</a><span></span></div>
+  </article>
+
+  <footer>
+    <div class="wide">
+      <span>© <span id="yr">2026</span> Kim Nguyen · SQL Quest</span>
+      <span>made with tea, rain &amp; a sleepy cat</span>
+    </div>
+  </footer>
+
+  <script>
+    window.QUIZ = [
+      { q: 'Question?', o: ['Option A', 'Option B (right)', 'Option C'], a: 1, w: 'Why B is right.' }
+    ];
+  </script>
+</body>
+</html>

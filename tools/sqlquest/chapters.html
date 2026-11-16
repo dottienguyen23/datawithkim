@@ -1,0 +1,166 @@
+
+    <section class="coldopen reveal">
+      <p>Every banking app, every flight booking, every dashboard your boss opens: somewhere underneath, there's a <code>SELECT</code> finding one row among billions in milliseconds.</p>
+      <p>In the 1960s, the same job meant a programmer writing pages of custom code just to find your record on a disk. SQL is older than the internet and older than the PC, trendy tools have tried to replace it, and it's still here, more popular than ever.</p>
+      <p class="big-idea">How does a 50-year-old language beat everything? Let's play through it, one level at a time.</p>
+    </section>
+
+    <section class="chapter reveal" id="ch1" style="--c: var(--muted)">
+      <div class="ch-head"><span class="ch-num">level 01</span><span class="ch-year">1960s</span></div>
+      <h2>The dark ages of data</h2>
+      <p>Picture this. It's 1965, and your boss walks over: <em>"How many customers in Milan ordered more than 100 lamps last year?"</em> Today you'd type one line of SQL. Back then? You'd say <em>"give me two weeks."</em></p>
+      <p>Data lives in one of two shapes. In the <strong>hierarchical model</strong> (like IBM's <strong>IMS</strong>) it's a family tree: a customer owns orders, each order owns items. In the <strong>network model</strong> (<strong>CODASYL</strong>) it's a web of records tied together by physical disk addresses, called <strong>pointers</strong>.</p>
+      <p>Imagine a library where books aren't sorted by title, but tied to each other with ropes. To find one book, the librarian starts at the door, follows the blue rope to shelf 4, jumps to shelf 12, climbs a ladder… And if the library moves a single shelf, every set of directions ever written is wrong.</p>
+      <p>That was 1960s software: the <em>meaning</em> of the data was glued to <em>where</em> it sat on disk. Move a file, and every program reading it crashed. Ask a new question, and someone had to write a brand-new navigation program.</p>
+      <p class="hook">Someone at IBM is about to ask: what if we cut all the ropes? →</p>
+      <div class="px save" style="--c: var(--muted)">{CAT}
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">Before SQL, data was glued to the disk, and every new question meant a new program.</p>
+          <div class="terms"><button class="term" data-def="Data stored like a family tree: parent records own child records. IBM's IMS worked this way.">hierarchical model</button><button class="term" data-def="Records linked in a web by physical disk pointers. Standardized by the CODASYL group.">network model</button><button class="term" data-def="A physical address telling the program where the next record sits on disk. Old databases made programmers follow these by hand.">pointer</button><button class="term" data-def="Procedural: you write the steps (go here, then there). The opposite of declarative.">procedural</button></div>
+          <label class="clear"><input type="checkbox" data-ch="1"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch2" style="--c: var(--mint)">
+      <div class="ch-head"><span class="ch-num">level 02</span><span class="ch-year">1970</span></div>
+      <h2>The paper that changed everything</h2>
+      <p>June 1970. <strong>Edgar F. "Ted" Codd</strong>, a British mathematician, Oxford-educated and working at IBM's lab in San Jose, publishes an 11-page paper with possibly the most boring title in computer history: <em>"A Relational Model of Data for Large Shared Data Banks."</em> Even some colleagues find it too mathematical to read.</p>
+      <p>But inside it is a revolution, and it fits on a sticky note: <strong>separate what the data means from where it's stored.</strong> Codd calls this <strong>data independence</strong>. Store everything as simple tables. Link tables by matching values (a customer ID), not by disk addresses. Then if someone reorganizes the disk, your tables, and your programs, don't even notice.</p>
+      {FIG_TERMS}
+      <p>And the best part: you just say <strong>what</strong> you want, and the machine works out <strong>how</strong> to get it.</p>
+      <p class="big-idea">You don't give the taxi driver directions. You just give the address.</p>
+      <p>That idea is called <strong>declarative</strong>. Codd also gives us <strong>normalization</strong>: rules for splitting data so that every fact lives in exactly one place, and never contradicts itself. In 1981 he receives the <strong>Turing Award</strong>, the "Nobel Prize" of computing.</p>
+      {FIG_WAYS}
+      <p class="hook">But who will turn a math paper into something people can actually type? →</p>
+      <div class="px save" style="--c: var(--mint)">{CAT}
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">Data independence: programs ask for meaning, not disk locations. Declarative: say WHAT, not HOW.</p>
+          <div class="terms"><button class="term" data-def="Codd's key idea: the logical view (tables) is separate from physical storage, so reorganizing the disk doesn't break programs.">data independence</button><button class="term" data-def="Codd's model: data as tables (relations) of rows (tuples) and columns (attributes), linked by matching values.">relational model</button><button class="term" data-def="You describe the result you want, not the steps. SQL is declarative; a loop in Python is not.">declarative</button><button class="term" data-def="Rules (1NF, 2NF, 3NF, BCNF) for splitting data into tables so each fact is stored in exactly one place.">normalization</button></div>
+          <label class="clear"><input type="checkbox" data-ch="2"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch3" style="--c: var(--mint)">
+      <div class="ch-head"><span class="ch-num">level 03</span><span class="ch-year">1973–1974</span></div>
+      <h2>A language anyone could read (almost)</h2>
+      <p>Codd's own query notation is pure math: symbols, quantifiers, subscripts. Beautiful, and terrifying for normal people. So in 1973 IBM starts a research project called <strong>System R</strong> to build a real, working version of Codd's model, and two young researchers, <strong>Donald Chamberlin</strong> and <strong>Raymond Boyce</strong>, get the job of designing its language.</p>
+      <p>Their first try, <strong>SQUARE</strong>, uses subscripts you can't even type on a keyboard. So they throw out the math symbols and keep the English. Their secret weapon is a game: one invents a question about the data, the other writes it in the new language, then they swap. Question, answer, question, answer, until it reads like a sentence:</p>
+      <blockquote>SELECT the name FROM customers WHERE the city is Pordenone.</blockquote>
+      <p>They call it <strong>SEQUEL</strong>, and one language now does it all: read data (<code>SELECT</code>), count and sum (<code>COUNT</code>, <code>SUM</code>), change data (<code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>) and build tables (<code>CREATE TABLE</code>). Then the lawyers call: a UK aircraft company, Hawker Siddeley, already owns the name "SEQUEL". So they drop the vowels, and <strong>SQL</strong> is born. That's why both "S-Q-L" and "sequel" are right.</p>
+      <p>There's a sad twist. In 1974, shortly after the two present SEQUEL to the world, Raymond Boyce dies suddenly of a brain aneurysm, still in his twenties. He never sees his language take over the world.</p>
+      <div class="px lab">
+        <span class="k">// the side effect you still feel today</span>
+        <p>Humans <em>write</em> <code>SELECT</code> first because that's how an English sentence starts. The machine <em>runs</em> <code>FROM</code> first, because it has to find the table before it can pick columns. That's why a <code>SELECT</code> alias doesn't exist yet when <code>WHERE</code> runs.</p>
+      </div>
+      {FIG_ORDER}
+      <p class="hook">Beautiful language. But the bosses have one question: "Isn't this going to be slow?" →</p>
+      <div class="px save" style="--c: var(--mint)">{CAT}
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">SQL was designed to read like English. We write SELECT first, the engine runs FROM first.</p>
+          <div class="terms"><button class="term" data-def="IBM's 1970s research project that built the first SQL database, to prove Codd's model could work in practice.">System R</button><button class="term" data-def="Structured English Query Language: SQL's original name, dropped because of a trademark.">SEQUEL</button><button class="term" data-def="FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT. Different from the order you write it.">execution order</button><button class="term" data-def="Statement groups: DDL (CREATE, ALTER), DML (INSERT, UPDATE, DELETE), DQL (SELECT). SQL put them all in one language.">DDL / DML</button></div>
+          <label class="clear"><input type="checkbox" data-ch="3"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch4" style="--c: var(--lav)">
+      <div class="ch-head"><span class="ch-num">level 04</span><span class="ch-year">1979</span></div>
+      <h2>The skeptics vs. the optimizer</h2>
+      <p>Enterprise bosses aren't impressed. <em>"A computer choosing its own route? It'll never be as fast as code written by hand."</em> If declarative SQL is slow, it's dead on arrival.</p>
+      <p>Enter <strong>Patricia Selinger</strong>, a researcher on the System R team. In 1979 she publishes the answer: the <strong>cost-based optimizer</strong>. Before running your query, the database lists the possible ways to run it (scan the whole table? use an index? join A then B, or B then A?), uses <strong>statistics</strong> about the tables to estimate what each way will cost in disk reads and CPU, and picks the cheapest.</p>
+      <p class="big-idea">It's a GPS for your query: same destination, it just picks the fastest road.</p>
+      <p>Her work proves that a declarative language can be as fast as hand-written code. Nearly every SQL database today, including PostgreSQL, still uses this idea.</p>
+      <div class="px lab">
+        <span class="k">// meanwhile, in my lab (2026)</span>
+        <p>I met Selinger's idea without knowing it. <code>EXPLAIN</code> shows the optimizer's choice and its estimated <code>cost=…</code>, and <code>ANALYZE</code> refreshes the statistics it uses to guess. On a 1-million-row table I never told PostgreSQL to use an index. Once the index existed, the optimizer picked it on its own.</p>
+      </div>
+      {FIG_LAB}
+      <p class="hook">IBM now has the model, the language and the optimizer. So why is someone else about to win? →</p>
+      <div class="px save" style="--c: var(--lav)">{CAT}
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">The optimizer estimates the cost of each possible plan and picks the cheapest. That's why SQL can be declarative and fast.</p>
+          <div class="terms"><button class="term" data-def="The part of the database that chooses how to run your query. You see its choice with EXPLAIN.">optimizer</button><button class="term" data-def="Optimizer that estimates the cost (disk reads + CPU) of each candidate plan and picks the cheapest. Invented by Patricia Selinger.">cost-based</button><button class="term" data-def="Numbers about a table (row count, distinct values…) that the optimizer uses to estimate costs. Refresh them in PostgreSQL with ANALYZE.">statistics</button><button class="term" data-def="PostgreSQL command that shows the plan the optimizer chose. EXPLAIN ANALYZE also runs it and shows real times.">EXPLAIN</button></div>
+          <label class="clear"><input type="checkbox" data-ch="4"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch5" style="--c: var(--sky)">
+      <div class="ch-head"><span class="ch-num">level 05</span><span class="ch-year">1979–1983</span></div>
+      <h2>The startup that beat IBM at its own game</h2>
+      <p>Here's the plot twist. IBM invented the model, the language <em>and</em> the optimizer, but it's in no hurry to sell any of it. It's making a fortune from its old database, <strong>IMS</strong>, and a better product would eat those sales.</p>
+      <p>IBM's researchers publish their papers openly, though. In California, a young entrepreneur named <strong>Larry Ellison</strong> reads them and thinks: <em>"IBM will sell this one day. What if we sell it first?"</em></p>
+      <p>His tiny company, Relational Software, Inc., builds its own SQL database and ships it in <strong>1979</strong>, the first SQL database anyone could buy. Their marketing trick? They call it <strong>Version 2</strong>, because who would trust a Version 1? IBM follows with <strong>SQL/DS</strong> in 1981 and <strong>Db2</strong> in 1983. Ellison's company later renames itself after its product: <strong>Oracle</strong>.</p>
+      <p>Oracle also brings its own flavour of SQL, <strong>PL/SQL</strong>, and with it <strong>packages</strong>: a way to group functions and procedures that PostgreSQL still doesn't have.</p>
+      <p class="hook">Now everyone wants to sell SQL. What could go wrong? →</p>
+      <div class="px save" style="--c: var(--sky)">{CAT}
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">IBM invented it, Oracle sold it first (1979). Never protect an old product so hard that you skip the new one.</p>
+          <div class="terms"><button class="term" data-def="Relational Database Management System: software that stores tables and runs SQL, e.g. PostgreSQL, MySQL, Oracle, SQL Server.">RDBMS</button><button class="term" data-def="IBM's hierarchical database. Its profits made IBM slow to sell relational databases.">IMS</button><button class="term" data-def="IBM's flagship relational database, released in 1983 and still used by big banks today.">Db2</button><button class="term" data-def="An Oracle container that groups related functions and procedures. PostgreSQL uses schemas for this instead.">package</button></div>
+          <label class="clear"><input type="checkbox" data-ch="5"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch6" style="--c: var(--peach)">
+      <div class="ch-head"><span class="ch-num">level 06</span><span class="ch-year">1986 →</span></div>
+      <h2>Everyone speaks SQL. Nobody speaks it the same.</h2>
+      <p>By the mid-1980s, SQL is a gold rush. Dozens of companies sell databases, and each adds its own words to SQL, like Italian in Milan versus Italian in Naples. Same language, different accent, and code written for one database doesn't run on the next.</p>
+      <p>To stop the chaos, SQL becomes an official <strong>standard</strong>: ANSI in <strong>1986</strong>, ISO in <strong>1987</strong>. The first edition is a slim book. Today the standard runs to thousands of pages. Like a dictionary, it gets a new edition every few years:</p>
+      {FIG_STAIRS}
+      <p>But here's the catch: a standard is a recommendation, not a law. Each database picks the features it likes, in its own way, on its own schedule. That's why every SQL tutorial you'll ever read says <em>"in PostgreSQL it's like this, in MySQL it's like that."</em></p>
+      <p class="hook">Two of those dialects are about to become very famous, and very free. →</p>
+      <div class="px save" style="--c: var(--peach)">{CAT}
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">The standard is a recommendation, so every database speaks its own dialect.</p>
+          <div class="terms"><button class="term" data-def="American and international standards bodies. They publish the official SQL standard (ANSI 1986, ISO 1987).">ANSI / ISO</button><button class="term" data-def="One database's version of SQL: mostly the same, with its own extras and gaps (PostgreSQL, MySQL, T-SQL…).">dialect</button><button class="term" data-def="Common Table Expression: a named temporary result written with WITH … AS (…). Standard since SQL:1999.">CTE</button><button class="term" data-def="A function that calculates over a group of related rows (a 'window') without merging them, e.g. RANK() OVER (...). Standard since SQL:2003.">window function</button></div>
+          <label class="clear"><input type="checkbox" data-ch="6"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch7" style="--c: var(--sky)">
+      <div class="ch-head"><span class="ch-num">level 07</span><span class="ch-year">1986–1996</span></div>
+      <h2>Two free heroes</h2>
+      <p>Every story needs heroes who don't charge money. Ours has two.</p>
+      <p><strong>Hero #1, the careful professor.</strong> At UC Berkeley, <strong>Michael Stonebraker</strong> has already built a database called <strong>Ingres</strong>. In <strong>1986</strong> he starts the next one and names it, literally, "<strong>Post-Ingres</strong>": <strong>Postgres</strong>. Funny detail: at first it doesn't even speak SQL. In <strong>1994</strong>, two students teach it SQL and release it as <strong>Postgres95</strong>. In <strong>1996</strong> it gets the name it still has: <strong>PostgreSQL</strong>. Careful, standards-loving, and free.</p>
+      <p><strong>Hero #2, the fast kid.</strong> In <strong>1995</strong>, a Swedish company releases <strong>MySQL</strong>, quick and simple, made for the young web. It ends up powering millions of websites, but it grows up slowly. Look how long it took to get window functions:</p>
+      {FIG_WINDOW}
+      <p>MySQL 8.0 is also the release that finally throws out its old <strong>query cache</strong>, the outdated step you still see in many "how a query works" diagrams.</p>
+      <p class="hook">SQL looks unbeatable. Then the internet gets really, really big. →</p>
+      <div class="px save" style="--c: var(--sky)">{CAT}
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">PostgreSQL loves the standard. MySQL started simple and caught up in 8.0.</p>
+          <div class="terms"><button class="term" data-def="Software whose source code is free to read, use and change. PostgreSQL and MySQL are both open source.">open source</button><button class="term" data-def="The 1994 version of Berkeley's Postgres that first spoke SQL. Renamed PostgreSQL in 1996.">Postgres95</button><button class="term" data-def="Old MySQL feature that stored results of identical queries. Removed in 8.0 because it slowed busy systems down.">query cache</button></div>
+          <label class="clear"><input type="checkbox" data-ch="7"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch8" style="--c: var(--pink)">
+      <div class="ch-head"><span class="ch-num">level 08</span><span class="ch-year">2008 → today</span></div>
+      <h2>"SQL is dead." Plot twist: it wasn't.</h2>
+      <p>Late 2000s. Google, Facebook, and Amazon are drowning in data, too much for any single machine. New tools appear that throw SQL away: <strong>Hadoop</strong> to crunch data across thousands of computers, and databases like Cassandra and MongoDB. Around <strong>2009</strong>, the movement gets a rebellious name: <strong>NoSQL</strong>. Blogs declare SQL a dinosaur.</p>
+      <p>But there's a problem. To ask Hadoop a question, you have to write a Java <strong>MapReduce</strong> program. A handful of engineers can do that, and they get a mountain of requests. Thousands of analysts can't write Java, but they all know SQL.</p>
+      <p>So Facebook does the most ironic thing possible: in <strong>2008</strong> it open-sources <strong>Hive</strong>, which puts <em>SQL on top of Hadoop</em>. Then the dominoes fall: <strong>Spark SQL</strong>, <strong>Presto</strong>, <strong>BigQuery</strong>, <strong>Snowflake</strong>, <strong>Databricks</strong>, <strong>Microsoft Fabric</strong>. The standard learns <strong>JSON</strong> in 2016, so SQL can read the document data NoSQL was famous for. <strong>dbt</strong> turns SQL into real code that lives in Git. And today, AI models turn plain-English questions into… SQL.</p>
+      <p class="big-idea">The dinosaur didn't go extinct. It learned to fly.</p>
+      {FIG_HUB}
+      <div class="px save" style="--c: var(--pink)">{CAT}
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">Tools come and go. SQL stays. Even AI answers your questions by writing SQL.</p>
+          <div class="terms"><button class="term" data-def="Databases that don't use the table + SQL model, built for huge scale or flexible data (MongoDB, Cassandra). Today often read as 'Not only SQL'.">NoSQL</button><button class="term" data-def="Hadoop's original way to process data: Java programs with a 'map' step and a 'reduce' step. Powerful, but hard to write.">MapReduce</button><button class="term" data-def="Facebook's tool (2008) that lets you query Hadoop data with SQL instead of Java.">Hive</button><button class="term" data-def="'data build tool': you write transformations as SQL files, keep them in Git, and dbt runs them in order.">dbt</button><button class="term" data-def="An AI model reads a question in plain language and writes the SQL query to answer it.">text-to-SQL</button></div>
+          <label class="clear"><input type="checkbox" data-ch="8"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+

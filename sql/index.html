@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL Quest · learn SQL from zero to data engineer · Data with Kim</title>
+  <meta name="description" content="Kim&#x27;s SQL study series: 18 episodes from your first SELECT to building a SQL data warehouse, with labs, diagrams, quizzes and a cat.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=VT323&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/pixel-study.css?v=1">
+  <script src="/assets/pixel-study.js?v=1" defer></script>
+</head>
+<body data-dock="on">
+
+  <nav>
+    <div class="wide">
+      <a class="logo" href="/">datawithkim<b>.dev</b></a>
+      <div class="nav-right">
+        
+        <a href="/sql/">SQL Quest</a>
+        <a class="hide-sm" href="/#notes">← notes</a>
+      </div>
+    </div>
+    <div class="track" aria-hidden="true"></div>
+  </nav>
+
+  <header class="wide hero">
+    <div>
+      <div class="chip">a study series by Kim · beginner → data engineer</div>
+      <h1>SQL <span class="hl">Quest</span></h1>
+      <p class="lead">I'm learning SQL in public, from my first <code>SELECT</code> to building a data warehouse. Every episode is one study session: a story, a hands-on lab, diagrams, a quiz, and a cat who sleeps through all of it.</p>
+      <div class="meta"><span>18 episodes</span><span>·</span><span>3 worlds</span><span>·</span><span class="t">PostgreSQL</span></div>
+      <div class="px progress-big" id="progress">
+        <div class="cat-slot" data-cls="cat"></div>
+        <div class="bar-outer"><div class="bar-inner" id="pbar"></div></div>
+        <span class="lbl" id="plbl">0/18 episodes</span>
+      </div>
+    </div>
+    <div>
+      <div class="px scene-box"><div class="scene-slot"></div></div>
+      <p class="scene-cap">the study room · open 24/7 · cat not included in the price</p>
+    </div>
+  </header>
+
+  <div class="wide">
+    <h2 class="section-title" style="--c: var(--mint)">How every episode works</h2>
+    <p class="section-sub">Same shape every time, so you always know where you are.</p>
+    <div class="anatomy">
+      <div class="px" style="--c: var(--mint)"><b>📖 story</b>Each topic starts with the problem it solves, told like a game level, with a cliffhanger at the end.</div>
+      <div class="px" style="--c: var(--sky)"><b>🧪 lab</b>Real commands on PostgreSQL with real output from my terminal, mistakes included.</div>
+      <div class="px" style="--c: var(--lav)"><b>📊 diagrams</b>One picture per big idea: execution plans, joins, windows, before vs after.</div>
+      <div class="px" style="--c: var(--peach)"><b>⚖️ compare</b>Side by side: RANK vs DENSE_RANK, Seq Scan vs Index Scan, PostgreSQL vs MySQL.</div>
+      <div class="px" style="--c: var(--pink)"><b>🛠 DE angle</b>Where this shows up in real data pipelines and dashboards at work.</div>
+      <div class="px" style="--c: var(--mint)"><b>💾 save points</b>Cat tips, hover-to-learn keywords, a glossary and a quiz to lock it in.</div>
+    </div>
+  </div>
+
+  <div class="wide">
+
+    <section class="world reveal" id="w1" style="--c: var(--mint)">
+      <div class="world-head"><span class="wn">beginner</span><h2 class="section-title" style="margin:0">World 1 · Speak SQL</h2></div>
+      <p class="world-sub">From your first SELECT to building your own tables. By the end you can answer real business questions on your own.</p>
+      <div class="eps">
+        <a class="px ep live" data-ep="ep00" href="/sql/ep00-story-of-sql/" style="--c: var(--mint)"><div class="num">ep 00<span class="st">play ▸</span></div><h3>A Short Story of SQL</h3><p>Why SQL exists: Codd, SEQUEL, the optimizer, and the language that refused to die.</p><span class="lab">no lab · history + quiz</span></a>
+        <div class="px ep soon" data-ep="ep01" style="--c: var(--mint)"><div class="num">ep 01<span class="st">soon</span></div><h3>Your first query</h3><p>Install PostgreSQL + DBeaver, load a sample shop, and run SELECT, FROM and LIMIT.</p><span class="lab">lab: load the shop database</span></div>
+        <div class="px ep soon" data-ep="ep02" style="--c: var(--mint)"><div class="num">ep 02<span class="st">soon</span></div><h3>Asking better questions</h3><p>WHERE, AND / OR, IN, BETWEEN, LIKE, ORDER BY, and the NULL trap.</p><span class="lab">lab: find the "lost" orders</span></div>
+        <div class="px ep soon" data-ep="ep03" style="--c: var(--mint)"><div class="num">ep 03<span class="st">soon</span></div><h3>Tables that talk</h3><p>INNER / LEFT / FULL JOIN, anti-joins, and stacking results with UNION, INTERSECT, EXCEPT.</p><span class="lab">lab: customers who never ordered</span></div>
+        <div class="px ep soon" data-ep="ep04" style="--c: var(--mint)"><div class="num">ep 04<span class="st">soon</span></div><h3>The function toolbox</h3><p>String, number and date functions, CASE logic, COALESCE and clean NULL handling.</p><span class="lab">lab: clean a messy customer list</span></div>
+        <div class="px ep soon" data-ep="ep05" style="--c: var(--mint)"><div class="num">ep 05<span class="st">soon</span></div><h3>Counting things</h3><p>COUNT, SUM, AVG, GROUP BY, HAVING: turning rows into answers.</p><span class="lab">lab: revenue per country</span></div>
+        <div class="px ep soon" data-ep="ep06" style="--c: var(--mint)"><div class="num">ep 06<span class="st">soon</span></div><h3>Build your own tables</h3><p>DDL vs DML, data types, PRIMARY / FOREIGN KEY, transactions with COMMIT and ROLLBACK.</p><span class="src">↳ my SQL2 notes</span><span class="lab">lab: design a mini retail schema</span></div>
+      </div>
+    </section>
+
+    <section class="world reveal" id="w2" style="--c: var(--lav)">
+      <div class="world-head"><span class="wn">intermediate</span><h2 class="section-title" style="margin:0">World 2 · Think like the database</h2></div>
+      <p class="world-sub">Stop guessing why a query is slow or wrong. Learn what the engine actually does, and the tools pros use every day.</p>
+      <div class="eps">
+        <div class="px ep soon" data-ep="ep07" style="--c: var(--lav)"><div class="num">ep 07<span class="st">soon</span></div><h3>What happens after Enter</h3><p>Parser → optimizer → executor, execution order, and reading your first EXPLAIN.</p><span class="src">↳ my SQL2 notes</span><span class="lab">lab: EXPLAIN five queries</span></div>
+        <div class="px ep soon" data-ep="ep08" style="--c: var(--lav)"><div class="num">ep 08<span class="st">soon</span></div><h3>Queries inside queries</h3><p>Subqueries, CTEs, WITH RECURSIVE, and temp tables.</p><span class="lab">lab: build an org chart</span></div>
+        <div class="px ep soon" data-ep="ep09" style="--c: var(--lav)"><div class="num">ep 09<span class="st">soon</span></div><h3>Window functions</h3><p>ROW_NUMBER / RANK / DENSE_RANK, PARTITION BY, named windows, frames, LAG and LEAD.</p><span class="src">↳ my sql3 notes</span><span class="lab">lab: month-over-month sales</span></div>
+        <div class="px ep soon" data-ep="ep10" style="--c: var(--lav)"><div class="num">ep 10<span class="st">soon</span></div><h3>Code that lives in the DB</h3><p>Views, functions, stored procedures and triggers, and when not to use them.</p><span class="src">↳ my SQL2 notes</span><span class="lab">lab: an auto updated_at trigger</span></div>
+        <div class="px ep soon" data-ep="ep11" style="--c: var(--lav)"><div class="num">ep 11<span class="st">soon</span></div><h3>Make it fast</h3><p>B-tree, composite, partial and GIN indexes, why an index is ignored, EXPLAIN ANALYZE.</p><span class="src">↳ my SQL_1 notes</span><span class="lab">lab: the 145× index, extended</span></div>
+      </div>
+    </section>
+
+    <section class="world reveal" id="w3" style="--c: var(--peach)">
+      <div class="world-head"><span class="wn">advanced</span><h2 class="section-title" style="margin:0">World 3 · SQL for Data Engineers</h2></div>
+      <p class="world-sub">The SQL that runs pipelines: modeling, safe loading, concurrency, big tables and the modern data stack.</p>
+      <div class="eps">
+        <div class="px ep soon" data-ep="ep12" style="--c: var(--peach)"><div class="num">ep 12<span class="st">soon</span></div><h3>Shaping data</h3><p>Normalization vs star schema, fact and dimension tables, surrogate keys.</p><span class="lab">lab: model a fact_SalesLine</span></div>
+        <div class="px ep soon" data-ep="ep13" style="--c: var(--peach)"><div class="num">ep 13<span class="st">soon</span></div><h3>Many users at once</h3><p>Transactions, isolation levels, locks and MVCC.</p><span class="lab">lab: two terminals, one row</span></div>
+        <div class="px ep soon" data-ep="ep14" style="--c: var(--peach)"><div class="num">ep 14<span class="st">soon</span></div><h3>Loading data safely</h3><p>COPY, upserts with ON CONFLICT, idempotent loads, SCD Type 2.</p><span class="lab">lab: a rerunnable daily load</span></div>
+        <div class="px ep soon" data-ep="ep15" style="--c: var(--peach)"><div class="num">ep 15<span class="st">soon</span></div><h3>SQL for analytics</h3><p>Exploratory data analysis, running totals, cohorts and segmentation in pure SQL.</p><span class="lab">lab: a customer report in one query</span></div>
+        <div class="px ep soon" data-ep="ep16" style="--c: var(--peach)"><div class="num">ep 16<span class="st">soon</span></div><h3>SQL in the modern stack</h3><p>dbt models and tests, SQL from Python, warehouse SQL in Microsoft Fabric.</p><span class="lab">lab: your first dbt project</span></div>
+        <div class="px ep soon boss" data-ep="boss" style="--c: var(--peach)"><div class="num">BOSS<span class="st">soon</span></div><h3>Boss level: build a SQL data warehouse</h3><p>Raw → staging → star schema → dashboard, end to end, on my home database server.</p><span class="lab">capstone project</span></div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="wide">
+    <h2 class="section-title" style="--c: var(--sky)">My study loop</h2>
+    <p class="section-sub">How one study session becomes one episode.</p>
+    <div class="journey">
+      <div class="px"><b>1 · study</b>Lesson + lab with my AI study buddy. Every question and error gets written down.</div>
+      <div class="px"><b>2 · report</b>"taki taki" → a bilingual task report in my Notion learning hub.</div>
+      <div class="px"><b>3 · build</b>The report becomes an episode page: story, lab, diagrams, quiz.</div>
+      <div class="px"><b>4 · ship</b><code>git push</code> → live on datawithkim.dev via GitHub Pages.</div>
+      <div class="px"><b>5 · share</b>A short post linking the episode, so others can learn along.</div>
+    </div>
+
+    <h2 class="section-title" style="--c: var(--peach)">Watch-along</h2>
+    <p class="section-sub">Prefer video? This free course covers most of the same ground and pairs well with the labs here.</p>
+    <a class="px lab" style="display:block; --b: var(--peach)" href="https://youtu.be/SSKVgrwhzus" target="_blank" rel="noopener">
+      <span class="k" style="color:var(--peach)">// video · Data with Baraa</span>
+      <p><strong>SQL Full Course for Beginners (30 Hours): From Zero to Hero</strong>. Basics, joins, functions, window functions, CTEs, procedures, performance, EDA and a data warehouse project. Different database engine than mine in places, so expect small syntax differences.</p>
+    </a>
+  </div>
+
+  <footer>
+    <div class="wide">
+      <span>© <span id="yr">2026</span> Kim Nguyen · SQL Quest</span>
+      <span>made with tea, rain &amp; a sleepy cat</span>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var done = 0, cards = document.querySelectorAll('.ep[data-ep]');
+      cards.forEach(function (c) {
+        if (window.SQLQuest && SQLQuest.isDone(c.dataset.ep)) {
+          done++; c.classList.add('done'); var st = c.querySelector('.st'); if (st) st.textContent = 'cleared ✓';
+        }
+      });
+      document.getElementById('pbar').style.width = (done / 18 * 100) + '%';
+      document.getElementById('plbl').textContent = done + '/18 episodes';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+
+/* ======================================================
+   SQL Quest hub page
+   ====================================================== */
+.world { margin: 56px 0 0; }
+.world-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+.world-head .wn { font-family: "VT323", monospace; font-size: 22px; color: var(--c); }
+.world-head h2 { margin: 0; }
+.world-head h2::before { content: ""; }
+.world-sub { color: var(--muted); margin-bottom: 20px; max-width: 62ch; }
+.eps { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+.ep {
+  --b: var(--line); position: relative; display: flex; flex-direction: column; gap: 6px;
+  padding: 16px 18px 14px; color: var(--soft); min-height: 186px; transition: transform .15s;
+}
+a.ep:hover { transform: translateY(-3px); text-decoration: none; --b: var(--c); }
+.ep .num { font-family: "VT323", monospace; font-size: 20px; color: var(--c); display: flex; justify-content: space-between; align-items: center; }
+.ep .st { font-size: 17px; padding: 0 8px; background: var(--bg-2); color: var(--muted); }
+.ep.live .st { background: var(--c); color: var(--bg); }
+.ep.done .st { background: var(--mint); color: var(--bg); }
+.ep h3 { font-family: "Pixelify Sans", monospace; font-weight: 600; font-size: 21px; line-height: 1.25; color: var(--text); }
+.ep p { font-size: 14.5px; line-height: 1.55; color: var(--muted); }
+.ep .lab { all: unset; font-family: "VT323", monospace; font-size: 17px; color: var(--lav); margin-top: auto; }
+.ep .src { font-family: "VT323", monospace; font-size: 16px; color: var(--peach); }
+.ep.soon { opacity: .72; }
+.ep.boss { --b: var(--peach); background: linear-gradient(160deg, #3a2f4f, var(--panel)); }
+
+.journey { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 10px 0; }
+.journey div { padding: 14px; font-size: 15px; color: var(--soft); }
+.journey b { display: block; font-family: "VT323", monospace; font-weight: 400; font-size: 21px; color: var(--peach); }
+
+.progress-big { display: flex; align-items: center; gap: 18px; padding: 16px 20px; margin-top: 18px; }
+.progress-big .bar-outer { flex: 1; height: 16px; background: var(--bg-2); }
+.progress-big .bar-inner { height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--mint) 0 10px, var(--lav) 10px 20px); transition: width 1s; }
+.progress-big .lbl { font-family: "VT323", monospace; font-size: 22px; color: var(--peach); white-space: nowrap; }
+.progress-big .cat { width: 44px; height: auto; }
+
+.anatomy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.anatomy div { padding: 14px 16px; font-size: 15px; color: var(--soft); }
+.anatomy b { display: block; font-family: "Pixelify Sans", monospace; font-weight: 600; color: var(--c, var(--mint)); font-size: 17px; }
+
+.ep-nav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 0; font-family: "VT323", monospace; font-size: 21px; }
+.ep-nav a, .ep-nav span { padding: 8px 14px; }
+.ep-nav span { color: var(--muted); }
+
+@media (max-width: 860px) {
+  .journey, .anatomy { grid-template-columns: 1fr; }
+}
