@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Focus · datawithkim.dev</title>
+<meta name="description" content="A focus timer, study tracker and study log.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f5f2ec; --surface:#fcfcfb; --surface-2:#efebe3; --line:#e0dbd0;
+  --ink:#1b1a17; --ink-2:#52514e; --ink-3:#8a877f;
+  --accent:#1f5f4a; --accent-ink:#ffffff; --accent-soft:#dbe9e2;
+  --break:#7a5a1f; --break-soft:#f1e6cf;
+  --danger:#b3261e;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --line:#33332f;
+    --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#8d8c84;
+    --accent:#5fbf9a; --accent-ink:#0d1f18; --accent-soft:#1f3a30;
+    --break:#e0b860; --break-soft:#3a3020;
+    --danger:#f2867f;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#0ca30c; --s7:#9085e9; --s8:#e66767;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding:20px 18px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
+h2{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:19px;margin:0 0 12px}
+.sync{font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink-3)}
+.dot.ok{background:var(--accent)}
+nav.tabs{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:999px}
+nav.tabs button{border:0;background:transparent;padding:7px 16px;border-radius:999px;cursor:pointer;color:var(--ink-2);font-weight:500}
+nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.grid{display:grid;gap:16px}
+.g-stats{grid-template-columns:repeat(2,1fr)}
+@media(min-width:820px){.g-focus{grid-template-columns:1.35fr 1fr}.g-stats{grid-template-columns:repeat(4,1fr)}}
+.btn{border:1px solid var(--line);background:var(--surface);padding:9px 16px;border-radius:10px;cursor:pointer;font-weight:500}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--ink-2)}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.45;cursor:default}
+label.f{display:block;font-size:12px;color:var(--ink-2);margin:10px 0 4px;font-weight:500}
+input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+textarea{min-height:70px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* timer */
+.modes{display:flex;gap:6px;justify-content:center;margin-bottom:6px}
+.modes button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 14px;cursor:pointer;font-size:13px;color:var(--ink-2)}
+.modes button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.timer{position:relative;width:min(300px,78vw);aspect-ratio:1;margin:12px auto 8px}
+.timer svg{width:100%;height:100%;transform:rotate(-90deg)}
+.timer .track{stroke:var(--surface-2)}
+.timer .prog{stroke:var(--accent);transition:stroke-dashoffset .3s linear}
+.timer.brk .prog{stroke:var(--break)}
+.timer .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.time{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:clamp(44px,12vw,62px);font-weight:600;letter-spacing:-.02em;line-height:1}
+.phase{font-size:13px;color:var(--ink-3);margin-top:6px;text-transform:uppercase;letter-spacing:.08em}
+.cycle{display:flex;gap:5px;justify-content:center;margin-top:10px}
+.cycle i{width:8px;height:8px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line)}
+.cycle i.done{background:var(--accent);border-color:var(--accent)}
+.controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.controls .btn.primary{min-width:120px}
+.distract{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px;font-size:13px;color:var(--ink-2)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;background:var(--surface-2);font-size:12px;color:var(--ink-2)}
+.sw{width:9px;height:9px;border-radius:3px;display:inline-block;flex:none}
+
+/* today panel */
+.goalbar{height:10px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.goalbar div{height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
+.big{font-family:Fraunces,Georgia,serif;font-size:34px;font-weight:600;line-height:1.1}
+.muted{color:var(--ink-3);font-size:13px}
+.todaylist{list-style:none;margin:10px 0 0;padding:0;max-height:240px;overflow:auto}
+.todaylist li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.stat .lbl{font-size:12px;color:var(--ink-2);font-weight:500}
+.stat .val{font-family:Fraunces,Georgia,serif;font-size:28px;font-weight:600;margin-top:2px}
+.stat .sub{font-size:12px;color:var(--ink-3)}
+
+/* chart */
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2);margin:4px 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .axis{fill:var(--ink-3);font-size:11px;font-family:Inter,sans-serif}
+.chart .grid line{stroke:var(--line);stroke-width:1}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--surface);padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.45;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:5}
+.tip .sw{margin-right:5px}
+.hbar{display:grid;grid-template-columns:minmax(90px,170px) 1fr 70px;align-items:center;gap:10px;padding:6px 0;font-size:14px}
+.hbar .track{height:12px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.hbar .fill{height:100%;border-radius:0 4px 4px 0}
+.hbar .v{text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
+
+/* log */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar select{width:auto}
+.day{margin-top:16px}
+.dayhead{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);font-weight:600;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.entry{display:grid;grid-template-columns:70px 1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
+.entry .t{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink-2)}
+.entry .main{min-width:0}
+.entry .title{font-weight:500}
+.entry .note{color:var(--ink-2);font-size:13px;white-space:pre-wrap;margin-top:2px}
+.entry .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.entry .right{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.stars{color:var(--accent);letter-spacing:1px}
+.empty{padding:30px 10px;text-align:center;color:var(--ink-3)}
+
+/* dialog */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.overlay.open{display:flex}
+.dialog{background:var(--surface);border-radius:16px;padding:20px;width:100%;max-width:440px;max-height:92vh;overflow:auto;border:1px solid var(--line)}
+.dialog .row{display:flex;gap:10px}
+.dialog .row>div{flex:1}
+.rate{display:flex;gap:6px;margin-top:4px}
+.rate button{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 0;cursor:pointer;font-size:13px}
+.rate button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.subjrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.subjrow input{flex:1}
+.quote{position:relative;background:var(--accent-soft);border-color:transparent}
+.quote blockquote{margin:0;font-family:Fraunces,Georgia,serif;font-size:19px;line-height:1.4;font-weight:400}
+.quote .by{margin-top:8px;font-size:13px;color:var(--ink-2)}
+.quote .qbar{display:flex;gap:4px;justify-content:flex-end;margin-top:8px}
+.qrow{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.qrow .qt{flex:1;font-size:14px}
+.qrow .qt small{display:block;color:var(--ink-3)}
+.vibes{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.vibes button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
+.vibes button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.vrow{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:var(--ink-2)}
+.vrow input[type=range]{flex:1;accent-color:var(--accent)}
+.eq{display:inline-flex;gap:2px;align-items:flex-end;height:12px;margin-left:6px;vertical-align:-1px}
+.eq i{width:3px;background:currentColor;border-radius:1px;animation:eq 1s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}
+@keyframes eq{0%,100%{height:3px}50%{height:12px}}
+/* zen */
+#zen{position:fixed;inset:0;z-index:15;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center;color:#f4f1ea;
+  background:linear-gradient(130deg,#1d3b33,#2b2f4a,#3d2c3e,#1f3a40);background-size:400% 400%;animation:drift 40s ease infinite}
+#zen.open{display:flex}
+@keyframes drift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+#zen .ztime{font-family:"JetBrains Mono",monospace;font-size:clamp(64px,17vw,140px);font-weight:600;letter-spacing:-.03em;line-height:1}
+#zen .zphase{text-transform:uppercase;letter-spacing:.2em;font-size:13px;opacity:.7}
+#zen .zquote{max-width:620px;font-family:Fraunces,Georgia,serif;font-size:clamp(17px,2.4vw,22px);opacity:.88;line-height:1.45}
+#zen .zby{font-size:13px;opacity:.6;margin-top:6px;font-family:Inter,sans-serif}
+#zen .zbtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#zen .zbtns button{background:rgba(255,255,255,.12);color:#f4f1ea;border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:9px 18px;cursor:pointer}
+#zen .zbtns button:hover{background:rgba(255,255,255,.2)}
+#zen .breathe{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.55);animation:breathe 8s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.35}50%{transform:scale(2.6);opacity:.8}}
+@media (prefers-reduced-motion: reduce){#zen,#zen .breathe,.eq i{animation:none}}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:9px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30}
+.toast.show{opacity:1}
+.hidden{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+table.tv{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+table.tv th,table.tv td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+table.tv td.n{text-align:right;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Study Focus</h1>
+      <div class="sync"><a href="/" style="color:inherit">← datawithkim.dev</a> ·</div>
+      <div class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt">Connecting…</span></div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="focus" aria-selected="true">Focus</button>
+      <button role="tab" data-tab="track" aria-selected="false">Progress</button>
+      <button role="tab" data-tab="log" aria-selected="false">Log</button>
+    </nav>
+  </header>
+
+  <!-- FOCUS -->
+  <section id="tab-focus" class="grid g-focus">
+    <div class="card">
+      <div class="modes" id="modes">
+        <button data-mode="focus" class="on">Focus</button>
+        <button data-mode="short">Short break</button>
+        <button data-mode="long">Long break</button>
+      </div>
+      <div class="timer" id="timerBox">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="track" cx="60" cy="60" r="54" fill="none" stroke-width="6"/>
+          <circle class="prog" id="ring" cx="60" cy="60" r="54" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="339.29" stroke-dashoffset="0"/>
+        </svg>
+        <div class="center">
+          <div class="time" id="time" aria-live="off">25:00</div>
+          <div class="phase" id="phase">Ready to focus</div>
+          <div class="cycle" id="cycle"></div>
+        </div>
+      </div>
+      <div class="row" style="display:flex;gap:10px">
+        <div style="flex:1"><label class="f" for="subj">Subject</label><select id="subj"></select></div>
+        <div style="flex:1.4"><label class="f" for="task">Working on</label><input type="text" id="task" placeholder="e.g. DP-700 module 3, SQL joins" maxlength="120"></div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="startBtn">Start</button>
+        <button class="btn" id="finishBtn" title="Stop now and log the time studied">Finish &amp; log</button>
+        <button class="btn ghost" id="resetBtn">Reset</button>
+      </div>
+      <div class="distract" id="distractRow">
+        <span>Distractions this session: <b id="dcount">0</b></span>
+        <button class="btn small" id="distractBtn" title="Tap whenever your mind wanders or you check your phone">+ I got distracted</button>
+      </div>
+    </div>
+
+    <div class="grid" style="align-content:start">
+      <div class="card quote" id="quoteCard">
+        <blockquote id="qText"></blockquote>
+        <div class="by" id="qBy"></div>
+        <div class="qbar">
+          <button class="btn small ghost" id="qNext" title="Show another quote">↻ Another</button>
+          <button class="btn small ghost" id="qEdit">My quotes</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0">Vibe <span id="vibeEq" class="eq hidden"><i></i><i></i><i></i></span></h2>
+          <button class="btn small" id="zenBtn" title="Hide everything except the timer">Zen mode</button>
+        </div>
+        <div class="vibes" id="vibes">
+          <button data-v="off" class="on">Off</button>
+          <button data-v="lofi">Lo-fi chords</button>
+          <button data-v="rain">Rain</button>
+          <button data-v="ocean">Ocean</button>
+          <button data-v="brown">Brown noise</button>
+          <button data-v="clock">Clock tick</button>
+        </div>
+        <div class="vrow"><span>Volume</span><input type="range" id="vibeVol" min="0" max="100" value="45" aria-label="Background sound volume"></div>
+        <label class="vrow" style="cursor:pointer"><input type="checkbox" id="vibeOnlyFocus" checked> Play only while the focus timer runs</label>
+      </div>
+      <div class="card">
+        <div class="muted">Today</div>
+        <div class="big" id="todayTotal">0m</div>
+        <div class="goalbar"><div id="goalFill" style="width:0"></div></div>
+        <div class="muted" id="goalTxt"></div>
+        <ul class="todaylist" id="todayList"></ul>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0">Settings</h2>
+          <button class="btn small" id="subjBtn">Edit subjects</button>
+        </div>
+        <div class="row" style="display:flex;gap:10px">
+          <div><label class="f" for="setFocus">Focus (min)</label><input type="number" id="setFocus" min="1" max="180"></div>
+          <div><label class="f" for="setShort">Short</label><input type="number" id="setShort" min="1" max="60"></div>
+          <div><label class="f" for="setLong">Long</label><input type="number" id="setLong" min="1" max="90"></div>
+        </div>
+        <div class="row" style="display:flex;gap:10px">
+          <div><label class="f" for="setEvery">Long break every</label><input type="number" id="setEvery" min="2" max="10"></div>
+          <div><label class="f" for="setGoal">Daily goal (min)</label><input type="number" id="setGoal" min="10" max="900" step="5"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section id="tab-track" class="grid hidden">
+    <div class="grid g-stats">
+      <div class="card stat"><div class="lbl">Today</div><div class="val" id="stToday">0m</div><div class="sub" id="stTodaySub"></div></div>
+      <div class="card stat"><div class="lbl">This week</div><div class="val" id="stWeek">0m</div><div class="sub" id="stWeekSub"></div></div>
+      <div class="card stat"><div class="lbl">Streak</div><div class="val" id="stStreak">0 days</div><div class="sub" id="stStreakSub"></div></div>
+      <div class="card stat"><div class="lbl">Avg focus rating</div><div class="val" id="stRate">–</div><div class="sub" id="stRateSub">last 14 days</div></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h2 style="margin:0">Minutes studied per day</h2>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="rangeSel" style="width:auto"><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
+          <button class="btn small" id="tableToggle">Table</button>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="chart" id="chart"><div class="tip" id="tip"></div></div>
+      <div id="tableView" class="hidden"></div>
+    </div>
+    <div class="card">
+      <h2>By subject <span class="muted" id="bySubjRange" style="font-family:Inter;font-weight:400;font-size:13px"></span></h2>
+      <div id="bySubj"></div>
+    </div>
+  </section>
+
+  <!-- LOG -->
+  <section id="tab-log" class="hidden">
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0;flex:1">Study record</h2>
+        <select id="logFilter"></select>
+        <button class="btn small" id="addManual">+ Add entry</button>
+        <button class="btn small" id="copyCsv">Copy CSV</button>
+      </div>
+      <div id="logList"></div>
+    </div>
+  </section>
+</div>
+
+<!-- Session dialog -->
+<div class="overlay" id="sessDlg" role="dialog" aria-modal="true" aria-labelledby="sessTitle">
+  <div class="dialog">
+    <h2 id="sessTitle">Log session</h2>
+    <div class="row">
+      <div><label class="f" for="dDate">Date</label><input type="date" id="dDate"></div>
+      <div><label class="f" for="dTime">Start time</label><input type="time" id="dTime"></div>
+      <div><label class="f" for="dMin">Minutes</label><input type="number" id="dMin" min="1" max="600"></div>
+    </div>
+    <label class="f" for="dSubj">Subject</label><select id="dSubj"></select>
+    <label class="f" for="dTask">Working on</label><input type="text" id="dTask" maxlength="120">
+    <label class="f">How focused were you?</label>
+    <div class="rate" id="dRate">
+      <button data-r="1">1</button><button data-r="2">2</button><button data-r="3">3</button><button data-r="4">4</button><button data-r="5">5</button>
+    </div>
+    <label class="f" for="dNote">Notes — what did you learn / what's next?</label>
+    <textarea id="dNote" maxlength="2000" placeholder="Key takeaways, questions, where to pick up next time"></textarea>
+    <div class="actions">
+      <button class="btn danger hidden" id="dDelete">Delete</button>
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="dCancel">Cancel</button>
+      <button class="btn primary" id="dSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Subjects dialog -->
+<div class="overlay" id="subjDlg" role="dialog" aria-modal="true" aria-labelledby="subjTitle">
+  <div class="dialog">
+    <h2 id="subjTitle">Subjects</h2>
+    <div class="muted">Up to 8 subjects, each keeps its own colour. Removing one keeps its past sessions.</div>
+    <div id="subjList" style="margin-top:8px"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input type="text" id="newSubj" placeholder="New subject" maxlength="40">
+      <button class="btn" id="addSubj">Add</button>
+    </div>
+    <div class="actions"><button class="btn primary" id="subjDone">Done</button></div>
+  </div>
+</div>
+
+<!-- Quotes dialog -->
+<div class="overlay" id="quoteDlg" role="dialog" aria-modal="true" aria-labelledby="quoteTitle">
+  <div class="dialog">
+    <h2 id="quoteTitle">My quotes</h2>
+    <div class="muted">A random one shows each time you start a focus block.</div>
+    <div id="quoteList" style="margin-top:8px;max-height:45vh;overflow:auto"></div>
+    <label class="f" for="newQuote">New quote</label>
+    <textarea id="newQuote" maxlength="400" style="min-height:60px" placeholder="Write a quote that keeps you going"></textarea>
+    <label class="f" for="newQuoteBy">Who said it (optional)</label>
+    <input type="text" id="newQuoteBy" maxlength="80" placeholder="e.g. Me, Mom, a proverb">
+    <div class="actions"><button class="btn" id="addQuote">Add quote</button><button class="btn primary" id="quoteDone">Done</button></div>
+  </div>
+</div>
+
+<!-- Confirm dialog -->
+<div class="overlay" id="confDlg" role="dialog" aria-modal="true">
+  <div class="dialog" style="max-width:360px">
+    <p id="confTxt" style="margin-top:0"></p>
+    <div class="actions"><button class="btn ghost" id="confNo">Cancel</button><button class="btn primary" id="confYes">Confirm</button></div>
+  </div>
+</div>
+
+<div id="zen" role="dialog" aria-modal="true" aria-label="Zen mode">
+  <div class="breathe" aria-hidden="true"></div>
+  <div class="zphase" id="zPhase">Focusing</div>
+  <div class="ztime" id="zTime">25:00</div>
+  <div><div class="zquote" id="zQuote"></div><div class="zby" id="zBy"></div></div>
+  <div class="zbtns"><button id="zStart">Pause</button><button id="zVibe">Sound: Off</button><button id="zExit">Exit zen</button></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const SLOTS = 8;
+const DEFAULT_SETTINGS = {
+  subjects: [
+    {id:"s1", name:"Data Engineering", slot:1},
+    {id:"s2", name:"Microsoft certification", slot:2},
+    {id:"s3", name:"Italian", slot:3},
+    {id:"s4", name:"Driving theory", slot:4}
+  ],
+  focusMin:25, shortMin:5, longMin:15, longEvery:4, goalMin:120
+};
+const DEFAULT_QUOTES = [
+  {id:"q1", text:"Có công mài sắt, có ngày nên kim.", by:"Vietnamese proverb · grind iron long enough and it becomes a needle"},
+  {id:"q2", text:"Chi va piano va sano e va lontano.", by:"Italian proverb · slow and steady goes far"},
+  {id:"q3", text:"Học, học nữa, học mãi.", by:"Vietnamese saying · study, study more, study forever"},
+  {id:"q4", text:"One focused block today beats a perfect plan for tomorrow.", by:""},
+  {id:"q5", text:"Small sessions, done every day, become a skill.", by:""},
+  {id:"q6", text:"You don't have to feel ready. You just have to start the timer.", by:""}
+];
+const getQuotes = () => Array.isArray(settings.quotes) ? settings.quotes : DEFAULT_QUOTES;
+let qIdx = -1;
+function nextQuote(){
+  const q=getQuotes(); if(!q.length){ qIdx=-1; renderQuote(); return; }
+  let n=Math.floor(Math.random()*q.length); if(q.length>1 && n===qIdx) n=(n+1)%q.length;
+  qIdx=n; try{ localStorage.setItem("study-focus-q", String(n)); }catch(e){} renderQuote();
+}
+function renderQuote(){
+  const q=getQuotes();
+  if(qIdx<0 || qIdx>=q.length){ try{ const v=parseInt(localStorage.getItem("study-focus-q"),10); qIdx = (v>=0 && v<q.length)? v : (q.length?0:-1); }catch(e){ qIdx=q.length?0:-1; } }
+  const cur=q[qIdx];
+  $("#qText").textContent = cur ? "“"+cur.text+"”" : "Add your own quotes to see them here.";
+  $("#qBy").textContent = cur && cur.by ? "— "+cur.by : "";
+  $("#qNext").disabled = q.length<2;
+  if(typeof renderZen==="function") renderZen();
+}
+function renderQuoteList(){
+  const q=getQuotes();
+  $("#quoteList").innerHTML = q.length ? q.map(x=>'<div class="qrow"><div class="qt">'+esc(x.text)+(x.by?'<small>— '+esc(x.by)+'</small>':'')+'</div><button class="btn small ghost danger" data-qdel="'+esc(x.id)+'">Remove</button></div>').join("") : '<div class="muted" style="padding:8px 0">No quotes yet.</div>';
+}
+
+/* ---------------- state ---------------- */
+let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+let months = {};            // "2026-11" -> [sessions]
+let store = null;           // storage adapter
+
+function allSessions(){
+  const out=[]; for(const k in months) for(const s of months[k]) out.push(s);
+  return out.sort((a,b)=>b.start-a.start);
+}
+const pad = n => String(n).padStart(2,"0");
+const monthKey = ms => { const d=new Date(ms); return d.getFullYear()+"-"+pad(d.getMonth()+1); };
+const dayKey = ms => { const d=new Date(ms); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+const fmtMin = m => { m=Math.round(m); if(m<60) return m+"m"; const h=Math.floor(m/60), r=m%60; return r? h+"h "+r+"m" : h+"h"; };
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const subjById = id => settings.subjects.find(s=>s.id===id) || (settings.archived||[]).find(s=>s.id===id);
+const subjName = id => (subjById(id)||{}).name || "Other";
+const subjColor = id => { const s=subjById(id); return s && s.slot? "var(--s"+s.slot+")" : "var(--ink-3)"; };
+function esc(t){ const d=document.createElement("div"); d.textContent=t==null?"":String(t); return d.innerHTML; }
+
+/* ---------------- storage ---------------- */
+// Local fallback (one browser only)
+const LS_KEY="study-focus-v1";
+function localStore(){
+  return {
+    kind:"local",
+    load(){ try{ const raw=localStorage.getItem(LS_KEY); if(raw){ const o=JSON.parse(raw); if(o.settings) settings=Object.assign({},DEFAULT_SETTINGS,o.settings); months=o.months||{}; } }catch(e){} renderAll(); },
+    saveSettings(){ this._flush(); },
+    saveMonth(){ this._flush(); },
+    _flush(){ try{ localStorage.setItem(LS_KEY, JSON.stringify({settings, months})); }catch(e){ toast("Couldn't save in this browser"); } }
+  };
+}
+// Synced store via db, private per-viewer subtree
+function dbStore(db, id){
+  const col = db.collection("data/users/"+id);
+  const chains = {};
+  function queue(docId, fn){
+    const p = (chains[docId]||Promise.resolve()).then(fn).catch(async e=>{
+      if(e && e.code==="unavailable"){ await new Promise(r=>setTimeout(r,800+Math.random()*800)); return fn(); }
+      throw e;
+    }).catch(e=>{ toast(e && e.code==="quota_exceeded" ? "Storage is full — delete old entries" : "Couldn't save — check your connection"); });
+    chains[docId]=p; return p;
+  }
+  return {
+    kind:"db",
+    load(){
+      let settled=false;
+      const timer=setTimeout(()=>{ if(!settled) setSync(false,"Can't reach saved data yet…"); },10000);
+      col.onSnapshot(snap=>{
+        let gotSettings=false; const m={};
+        snap.docs.forEach(d=>{
+          const data=d.data(); if(!data) return;
+          if(d.id==="settings"){ settings=Object.assign({},DEFAULT_SETTINGS,data); gotSettings=true; }
+          else if(d.id.startsWith("m-")){ m[d.id.slice(2)] = Array.isArray(data.sessions)? data.sessions.slice() : []; }
+        });
+        months=m;
+        if(!snap.metadata.fromCache){ settled=true; clearTimeout(timer); setSync(true,"Synced to your account"); }
+        renderAll();
+      }, err=>{ clearTimeout(timer); setSync(false,"Sync stopped — reload to reconnect"); });
+    },
+    saveSettings(){ const body=JSON.parse(JSON.stringify(settings)); return queue("settings",()=>col.doc("settings").set(body)); },
+    saveMonth(mk){ const body={sessions:(months[mk]||[]).slice()}; return queue("m-"+mk,()=>col.doc("m-"+mk).set(body)); }
+  };
+}
+function setSync(ok,txt){ $("#syncDot").classList.toggle("ok",ok); $("#syncTxt").textContent=txt; }
+
+async function initStore(){
+  let db=null, id=null;
+  try{
+    if(window.claude && typeof window.claude.use==="function"){
+      const [d,u] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+      db=d; if(u && typeof u.id==="function") id = await u.id();
+    }
+  }catch(e){}
+  if(db && id){ store=dbStore(db,id); setSync(false,"Loading…"); }
+  else { store=localStore(); setSync(false,"Saved in this browser only"); }
+  store.load();
+}
+
+function upsertSession(s, oldStart){
+  // remove from old month if moved
+  if(oldStart!=null){
+    const om=monthKey(oldStart);
+    if(months[om]){ const before=months[om].length; months[om]=months[om].filter(x=>x.id!==s.id); if(om!==monthKey(s.start) && months[om].length!==before) store.saveMonth(om); }
+  }
+  const mk=monthKey(s.start);
+  months[mk]=(months[mk]||[]).filter(x=>x.id!==s.id);
+  months[mk].push(s);
+  store.saveMonth(mk);
+  renderAll();
+}
+function deleteSession(s){
+  const mk=monthKey(s.start);
+  months[mk]=(months[mk]||[]).filter(x=>x.id!==s.id);
+  store.saveMonth(mk); renderAll();
+}
+
+/* ---------------- timer ---------------- */
+const T_KEY="study-focus-timer";
+let T = { mode:"focus", running:false, endsAt:0, remaining:25*60000, total:25*60000, startedAt:null, completed:0, distractions:0 };
+function modeMin(m){ return m==="focus"?settings.focusMin : m==="short"?settings.shortMin : settings.longMin; }
+function saveTimer(){ try{ localStorage.setItem(T_KEY, JSON.stringify(T)); }catch(e){} }
+function loadTimer(){ try{ const o=JSON.parse(localStorage.getItem(T_KEY)||"null"); if(o && o.mode) T=Object.assign(T,o); }catch(e){} }
+function remainingNow(){ return T.running ? Math.max(0, T.endsAt-Date.now()) : T.remaining; }
+function setMode(m, keepCount){
+  T.mode=m; T.running=false; T.total=modeMin(m)*60000; T.remaining=T.total; T.startedAt=null;
+  if(m==="focus") T.distractions=0;
+  saveTimer(); renderTimer();
+}
+let audioCtx=null;
+function chime(){
+  try{
+    if(!audioCtx) return;
+    const now=audioCtx.currentTime;
+    [660,880,990].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type="sine"; o.frequency.value=f; o.connect(g); g.connect(audioCtx.destination);
+      const t=now+i*0.22; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.25,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.6);
+      o.start(t); o.stop(t+0.65);
+    });
+  }catch(e){}
+}
+function start(){
+  ensureCtx();
+  if(T.running){ // pause
+    T.remaining=Math.max(0,T.endsAt-Date.now()); T.running=false;
+  } else {
+    if(!T.startedAt){ T.startedAt=Date.now(); if(T.mode==="focus") nextQuote(); }
+    T.endsAt=Date.now()+T.remaining; T.running=true;
+  }
+  saveTimer(); renderTimer();
+}
+function phaseDone(){
+  T.running=false; T.remaining=0; saveTimer(); chime();
+  if(T.mode==="focus"){
+    T.completed=(T.completed||0)+1;
+    closeZen(); openSession({fromTimer:true, minutes:Math.round(T.total/60000)});
+  } else {
+    toast("Break's over — ready for the next focus block");
+    setMode("focus");
+  }
+}
+function finishEarly(){
+  if(T.mode!=="focus"){ setMode("focus"); return; }
+  const elapsed = T.total - remainingNow();
+  const mins = Math.round(elapsed/60000);
+  if(mins<1){ toast("Study at least a minute before logging"); return; }
+  if(T.running){ T.remaining=remainingNow(); T.running=false; saveTimer(); }
+  openSession({fromTimer:true, minutes:mins, early:true});
+}
+function afterFocusLogged(early){
+  // move on to a break
+  if(early){ setMode("focus"); return; }
+  const every=settings.longEvery||4;
+  setMode(T.completed % every===0 ? "long" : "short");
+}
+function renderTimer(){
+  const rem=remainingNow();
+  const s=Math.ceil(rem/1000), mm=Math.floor(s/60), ss=s%60;
+  const txt=pad(mm)+":"+pad(ss);
+  $("#time").textContent=txt;
+  const frac = T.total? 1-rem/T.total : 0;
+  $("#ring").style.strokeDashoffset = (339.29*frac).toFixed(2);
+  $("#timerBox").classList.toggle("brk", T.mode!=="focus");
+  $$("#modes button").forEach(b=>b.classList.toggle("on", b.dataset.mode===T.mode));
+  const idle = !T.running && rem===T.total;
+  $("#phase").textContent = T.mode==="focus" ? (T.running?"Focusing":(idle?"Ready to focus":"Paused")) : (T.running?"On a break":(idle?"Break":"Break paused"));
+  $("#startBtn").textContent = T.running ? "Pause" : (idle ? "Start" : "Resume");
+  $("#finishBtn").textContent = T.mode==="focus" ? "Finish & log" : "Skip break";
+  $("#distractRow").style.visibility = T.mode==="focus" ? "visible":"hidden";
+  $("#dcount").textContent=T.distractions||0;
+  const every=settings.longEvery||4, done=(T.completed||0)%every;
+  $("#cycle").innerHTML = Array.from({length:every},(_,i)=>'<i class="'+(i<done?"done":"")+'"></i>').join("");
+  if(typeof syncAmbience==="function") syncAmbience();
+  if(typeof renderZen==="function") renderZen();
+  document.title = T.running ? txt+" · "+(T.mode==="focus"?"Focus":"Break") : "Study Focus";
+}
+setInterval(()=>{ if(T.running){ if(T.endsAt<=Date.now()) phaseDone(); renderTimer(); } }, 250);
+
+/* ---------------- ambience ---------------- */
+const V_KEY="study-focus-vibe";
+let vibe={sound:"off", vol:45, onlyFocus:true};
+try{ const o=JSON.parse(localStorage.getItem(V_KEY)||"null"); if(o) vibe=Object.assign(vibe,o); }catch(e){}
+const saveVibe=()=>{ try{ localStorage.setItem(V_KEY,JSON.stringify(vibe)); }catch(e){} };
+const VIBE_NAMES={off:"Off",lofi:"Lo-fi",rain:"Rain",ocean:"Ocean",brown:"Brown noise",clock:"Clock tick"};
+let amb=null; // {master, nodes:[], timers:[], kind}
+function ensureCtx(){
+  try{ if(!audioCtx){ const AC=window.AudioContext||window.webkitAudioContext; if(AC) audioCtx=new AC(); } else if(audioCtx.state==="suspended") audioCtx.resume(); }catch(e){}
+  return audioCtx;
+}
+function noiseBuffer(ctx,type){
+  const len=ctx.sampleRate*4, buf=ctx.createBuffer(1,len,ctx.sampleRate), d=buf.getChannelData(0);
+  let last=0,b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+  for(let i=0;i<len;i++){
+    const w=Math.random()*2-1;
+    if(type==="brown"){ last=(last+0.02*w)/1.02; d[i]=last*3.5; }
+    else if(type==="pink"){ b0=.99886*b0+w*.0555179;b1=.99332*b1+w*.0750759;b2=.969*b2+w*.153852;b3=.8665*b3+w*.3104856;b4=.55*b4+w*.5329522;b5=-.7616*b5-w*.016898; d[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.11; b6=w*.115926; }
+    else d[i]=w;
+  }
+  // crossfade loop edges
+  const f=2048; for(let i=0;i<f;i++){ const t=i/f; d[i]=d[i]*t+d[len-f+i]*(1-t); }
+  return buf;
+}
+function loopNoise(ctx,type){ const s=ctx.createBufferSource(); s.buffer=noiseBuffer(ctx,type); s.loop=true; return s; }
+function lfo(ctx,freq,depth,target,base){ const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=freq; g.gain.value=depth; o.connect(g); g.connect(target); target.value=base; o.start(); return o; }
+function buildAmbience(kind){
+  const ctx=audioCtx, master=ctx.createGain(); master.gain.value=0; master.connect(ctx.destination);
+  const a={kind, master, nodes:[], timers:[]};
+  const keep=n=>{ a.nodes.push(n); return n; };
+  if(kind==="rain"){
+    const n=keep(loopNoise(ctx,"pink")), hp=ctx.createBiquadFilter(), lp=ctx.createBiquadFilter(), g=ctx.createGain();
+    hp.type="highpass"; hp.frequency.value=500; lp.type="lowpass"; lp.frequency.value=6500; g.gain.value=0.9;
+    n.connect(hp); hp.connect(lp); lp.connect(g); g.connect(master); n.start();
+    keep(lfo(ctx,0.07,0.15,g.gain,0.85));
+    const rumble=keep(loopNoise(ctx,"brown")), rl=ctx.createBiquadFilter(), rg=ctx.createGain(); rl.type="lowpass"; rl.frequency.value=300; rg.gain.value=0.35;
+    rumble.connect(rl); rl.connect(rg); rg.connect(master); rumble.start();
+    a.timers.push(setInterval(()=>{ // droplets
+      const t=ctx.currentTime+Math.random()*0.2, o=ctx.createOscillator(), dg=ctx.createGain();
+      o.frequency.setValueAtTime(1800+Math.random()*2200,t); o.frequency.exponentialRampToValueAtTime(600,t+0.05);
+      dg.gain.setValueAtTime(0.0001,t); dg.gain.exponentialRampToValueAtTime(0.05,t+0.003); dg.gain.exponentialRampToValueAtTime(0.0001,t+0.06);
+      o.connect(dg); dg.connect(master); o.start(t); o.stop(t+0.07);
+    },140));
+  } else if(kind==="ocean"){
+    const n=keep(loopNoise(ctx,"brown")), lp=ctx.createBiquadFilter(), g=ctx.createGain();
+    lp.type="lowpass"; lp.Q.value=0.5; n.connect(lp); lp.connect(g); g.connect(master); n.start();
+    keep(lfo(ctx,0.09,0.45,g.gain,0.55)); keep(lfo(ctx,0.09,500,lp.frequency,900));
+    const hiss=keep(loopNoise(ctx,"pink")), hb=ctx.createBiquadFilter(), hg=ctx.createGain(); hb.type="bandpass"; hb.frequency.value=2500; hb.Q.value=0.6;
+    hiss.connect(hb); hb.connect(hg); hg.connect(master); hiss.start(); keep(lfo(ctx,0.09,0.08,hg.gain,0.08));
+  } else if(kind==="brown"){
+    const n=keep(loopNoise(ctx,"brown")), lp=ctx.createBiquadFilter(), g=ctx.createGain();
+    lp.type="lowpass"; lp.frequency.value=1100; g.gain.value=0.9; n.connect(lp); lp.connect(g); g.connect(master); n.start();
+  } else if(kind==="clock"){
+    let k=0;
+    a.timers.push(setInterval(()=>{
+      const t=ctx.currentTime+0.02, src=ctx.createBufferSource(), bp=ctx.createBiquadFilter(), g=ctx.createGain();
+      if(!a.click) a.click=noiseBuffer(ctx,"white");
+      src.buffer=a.click; bp.type="bandpass"; bp.frequency.value=(k++%2)?3200:2600; bp.Q.value=8;
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.9,t+0.002); g.gain.exponentialRampToValueAtTime(0.0001,t+0.035);
+      src.connect(bp); bp.connect(g); g.connect(master); src.start(t, Math.random()*3, 0.05);
+    },1000));
+  } else if(kind==="lofi"){
+    const lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=1300; lp.Q.value=0.7; lp.connect(master);
+    keep(lfo(ctx,0.05,250,lp.frequency,1300));
+    const crackle=keep(loopNoise(ctx,"pink")), cg=ctx.createGain(), chp=ctx.createBiquadFilter(); chp.type="highpass"; chp.frequency.value=1500; cg.gain.value=0.03;
+    crackle.connect(chp); chp.connect(cg); cg.connect(master); crackle.start();
+    const mtof=m=>440*Math.pow(2,(m-69)/12);
+    const chords=[[48,55,64,71],[45,52,60,67],[50,57,65,72],[43,50,59,65]]; // Cmaj7 Am7 Dm7 G7
+    const melody=[76,74,72,74, 72,69,72,67, 77,76,74,72, 71,74,72,null];
+    const beat=60/72, bar=beat*4; let next=ctx.currentTime+0.1, ci=0;
+    function note(m,t,dur,vol,type){
+      const o=ctx.createOscillator(), g=ctx.createGain(); o.type=type; o.frequency.value=mtof(m); o.detune.value=(Math.random()-.5)*12;
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.08); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.connect(g); g.connect(lp); o.start(t); o.stop(t+dur+0.05);
+    }
+    function kick(t){ const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.setValueAtTime(110,t); o.frequency.exponentialRampToValueAtTime(40,t+0.18); g.gain.setValueAtTime(0.35,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.25); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.3); }
+    function hat(t){ if(!a.click) a.click=noiseBuffer(ctx,"white"); const s2=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain(); s2.buffer=a.click; f.type="highpass"; f.frequency.value=7000; g.gain.setValueAtTime(0.05,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.05); s2.connect(f); f.connect(g); g.connect(master); s2.start(t,Math.random()*3,0.06); }
+    function schedule(){
+      while(next<ctx.currentTime+1.5){
+        const ch=chords[ci%4];
+        ch.forEach(m=>note(m,next,bar*0.98,0.05,"triangle"));
+        note(ch[0]-12,next,bar*0.9,0.09,"sine");
+        for(let b=0;b<4;b++){ const t=next+b*beat;
+          if(b===0||b===2) kick(t);
+          hat(t+beat/2+0.03);
+          const m=melody[(ci%4)*4+b]; if(m && Math.random()<0.8) note(m,t,beat*0.9,0.03,"sine");
+        }
+        next+=bar; ci++;
+      }
+    }
+    schedule(); a.timers.push(setInterval(schedule,400));
+  }
+  return a;
+}
+function stopAmbience(){
+  if(!amb) return; const a=amb; amb=null;
+  try{ const t=audioCtx.currentTime; a.master.gain.cancelScheduledValues(t); a.master.gain.setValueAtTime(a.master.gain.value,t); a.master.gain.linearRampToValueAtTime(0,t+0.6); }catch(e){}
+  a.timers.forEach(clearInterval);
+  setTimeout(()=>{ a.nodes.forEach(n=>{ try{ n.stop(); }catch(e){} }); try{ a.master.disconnect(); }catch(e){} },700);
+}
+function vibeTarget(){ return (vibe.vol/100)*0.5; }
+function syncAmbience(){
+  const want = vibe.sound!=="off" && (!vibe.onlyFocus || (T.running && T.mode==="focus"));
+  if(!want){ stopAmbience(); }
+  else if(audioCtx){
+    if(amb && amb.kind!==vibe.sound) stopAmbience();
+    if(!amb){ amb=buildAmbience(vibe.sound); const t=audioCtx.currentTime; amb.master.gain.setValueAtTime(0,t); amb.master.gain.linearRampToValueAtTime(vibeTarget(),t+1.5); }
+    else amb.master.gain.setTargetAtTime(vibeTarget(),audioCtx.currentTime,0.1);
+  }
+  $$("#vibes button").forEach(b=>b.classList.toggle("on",b.dataset.v===vibe.sound));
+  $("#vibeVol").value=vibe.vol; $("#vibeOnlyFocus").checked=vibe.onlyFocus;
+  $("#vibeEq").classList.toggle("hidden",!amb);
+  $("#zVibe").textContent="Sound: "+VIBE_NAMES[vibe.sound];
+}
+function setVibe(v){ ensureCtx(); vibe.sound=v; saveVibe(); syncAmbience();
+  if(v!=="off" && vibe.onlyFocus && !(T.running && T.mode==="focus")) toast(VIBE_NAMES[v]+" will play when you start focusing"); }
+
+/* ---------------- zen ---------------- */
+function renderZen(){
+  if(!$("#zen").classList.contains("open")) return;
+  $("#zTime").textContent=$("#time").textContent; $("#zPhase").textContent=$("#phase").textContent;
+  $("#zStart").textContent=$("#startBtn").textContent;
+  $("#zQuote").textContent=$("#qText").textContent; $("#zBy").textContent=$("#qBy").textContent;
+}
+function openZen(){ $("#zen").classList.add("open"); renderZen(); try{ document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){} }
+function closeZen(){ $("#zen").classList.remove("open"); try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} }
+
+/* ---------------- session dialog ---------------- */
+let editing=null, dRating=0, dlgCtx=null;
+function fillSubjSelect(sel, value, includeAll){
+  const opts=(includeAll?['<option value="">All subjects</option>']:[]).concat(settings.subjects.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'));
+  if(value && !settings.subjects.find(s=>s.id===value) && subjById(value)) opts.push('<option value="'+esc(value)+'">'+esc(subjName(value))+' (archived)</option>');
+  sel.innerHTML=opts.join(""); if(value!=null) sel.value=value;
+}
+function setRate(r){ dRating=r; $$("#dRate button").forEach(b=>b.classList.toggle("on", +b.dataset.r===r)); }
+function openSession(ctx){
+  dlgCtx=ctx||{}; editing=ctx && ctx.session ? ctx.session : null;
+  const s=editing;
+  const startMs = s ? s.start : (ctx.fromTimer && T.startedAt ? T.startedAt : Date.now()-((ctx.minutes||settings.focusMin)*60000));
+  const d=new Date(startMs);
+  $("#sessTitle").textContent = s ? "Edit session" : ctx.fromTimer ? (ctx.early ? "Nice — log what you did" : "Focus block done 🎉") : "Add a past session";
+  $("#dDate").value=dayKey(startMs); $("#dTime").value=pad(d.getHours())+":"+pad(d.getMinutes());
+  $("#dMin").value = s ? s.min : (ctx.minutes||settings.focusMin);
+  fillSubjSelect($("#dSubj"), s ? s.subject : ($("#subj").value || (settings.subjects[0]||{}).id));
+  $("#dTask").value = s ? (s.task||"") : (ctx.fromTimer ? $("#task").value : "");
+  $("#dNote").value = s ? (s.note||"") : "";
+  setRate(s ? (s.rating||0) : 0);
+  $("#dDelete").classList.toggle("hidden", !s);
+  openOverlay("#sessDlg"); setTimeout(()=>$("#dNote").focus(),50);
+}
+function saveSession(){
+  const min=Math.max(1,Math.min(600,parseInt($("#dMin").value,10)||0));
+  const [y,mo,da]=($("#dDate").value||dayKey(Date.now())).split("-").map(Number);
+  const [h,mi]=($("#dTime").value||"00:00").split(":").map(Number);
+  const start=new Date(y,mo-1,da,h,mi).getTime();
+  if(isNaN(start)){ toast("Check the date and time"); return; }
+  const base = editing ? Object.assign({},editing) : { id:uid(), kind: dlgCtx.fromTimer?"timer":"manual", distractions: dlgCtx.fromTimer?(T.distractions||0):0 };
+  const s=Object.assign(base,{ start, min, subject:$("#dSubj").value, task:$("#dTask").value.trim(), note:$("#dNote").value.trim(), rating:dRating||0 });
+  upsertSession(s, editing ? editing.start : null);
+  const wasTimer=dlgCtx.fromTimer, early=dlgCtx.early;
+  closeOverlay("#sessDlg");
+  toast(editing ? "Updated" : "Logged "+fmtMin(min)+" of "+subjName(s.subject));
+  editing=null; dlgCtx=null;
+  if(wasTimer) afterFocusLogged(early);
+}
+function cancelSession(){
+  const wasTimer=dlgCtx && dlgCtx.fromTimer, early=dlgCtx && dlgCtx.early;
+  closeOverlay("#sessDlg"); editing=null; dlgCtx=null;
+  if(wasTimer && !early){ afterFocusLogged(false); toast("Not logged"); }
+}
+
+/* ---------------- overlays, toast, confirm ---------------- */
+function openOverlay(sel){ $(sel).classList.add("open"); }
+function closeOverlay(sel){ $(sel).classList.remove("open"); }
+let toastT; function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2400); }
+function confirmBox(text){ return new Promise(res=>{ $("#confTxt").textContent=text; openOverlay("#confDlg");
+  const done=v=>{ closeOverlay("#confDlg"); $("#confYes").onclick=$("#confNo").onclick=null; res(v); };
+  $("#confYes").onclick=()=>done(true); $("#confNo").onclick=()=>done(false); }); }
+
+/* ---------------- subjects ---------------- */
+function renderSubjects(){
+  $("#subjList").innerHTML = settings.subjects.map(s=>
+    '<div class="subjrow"><span class="sw" style="background:var(--s'+s.slot+')"></span><input type="text" data-id="'+esc(s.id)+'" value="'+esc(s.name)+'" maxlength="40"><button class="btn small ghost danger" data-del="'+esc(s.id)+'" aria-label="Remove '+esc(s.name)+'">Remove</button></div>'
+  ).join("") || '<div class="muted">No subjects yet.</div>';
+  $("#addSubj").disabled = settings.subjects.length>=SLOTS;
+}
+function freeSlot(){ const used=new Set(settings.subjects.map(s=>s.slot)); for(let i=1;i<=SLOTS;i++) if(!used.has(i)) return i; return null; }
+
+/* ---------------- rendering ---------------- */
+function startOfDay(ms){ const d=new Date(ms); d.setHours(0,0,0,0); return d.getTime(); }
+function minutesByDay(){ const m={}; allSessions().forEach(s=>{ const k=dayKey(s.start); m[k]=(m[k]||0)+s.min; }); return m; }
+
+function renderToday(){
+  const today=dayKey(Date.now());
+  const list=allSessions().filter(s=>dayKey(s.start)===today);
+  const tot=list.reduce((a,s)=>a+s.min,0);
+  $("#todayTotal").textContent=fmtMin(tot);
+  const g=settings.goalMin||120;
+  $("#goalFill").style.width=Math.min(100,tot/g*100)+"%";
+  $("#goalTxt").textContent = tot>=g ? "Daily goal of "+fmtMin(g)+" reached ✓" : fmtMin(g-tot)+" to your "+fmtMin(g)+" goal";
+  $("#todayList").innerHTML = list.length ? list.map(s=>{ const d=new Date(s.start);
+    return '<li><span><span class="sw" style="background:'+subjColor(s.subject)+';margin-right:6px"></span>'+esc(s.task||subjName(s.subject))+'</span><span class="muted">'+pad(d.getHours())+":"+pad(d.getMinutes())+" · "+fmtMin(s.min)+'</span></li>'; }).join("")
+    : '<li class="muted" style="border:0">Nothing yet today. Start a focus block!</li>';
+}
+
+function renderStats(){
+  const byDay=minutesByDay(), now=Date.now();
+  const today=byDay[dayKey(now)]||0;
+  $("#stToday").textContent=fmtMin(today);
+  $("#stTodaySub").textContent=Math.round(today/(settings.goalMin||120)*100)+"% of daily goal";
+  // week (Mon start)
+  const d=new Date(startOfDay(now)); const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow);
+  let wk=0, lastWk=0;
+  for(let i=0;i<7;i++){ const a=new Date(d); a.setDate(d.getDate()+i); wk+=byDay[dayKey(a.getTime())]||0; const b=new Date(d); b.setDate(d.getDate()+i-7); lastWk+=byDay[dayKey(b.getTime())]||0; }
+  $("#stWeek").textContent=fmtMin(wk);
+  $("#stWeekSub").textContent="Last week: "+fmtMin(lastWk);
+  // streak
+  let streak=0; const c=new Date(startOfDay(now));
+  if(!byDay[dayKey(c.getTime())]) c.setDate(c.getDate()-1);
+  while(byDay[dayKey(c.getTime())]>0){ streak++; c.setDate(c.getDate()-1); }
+  let best=0, run=0; const days=Object.keys(byDay).sort();
+  let prev=null; days.forEach(k=>{ const t=new Date(k+"T00:00").getTime(); if(prev!=null && Math.round((t-prev)/864e5)===1) run++; else run=1; best=Math.max(best,run); prev=t; });
+  $("#stStreak").textContent=streak+(streak===1?" day":" days");
+  $("#stStreakSub").textContent="Best: "+best+(best===1?" day":" days");
+  // rating
+  const since=startOfDay(now)-13*864e5;
+  const rated=allSessions().filter(s=>s.start>=since && s.rating>0);
+  $("#stRate").textContent = rated.length ? (rated.reduce((a,s)=>a+s.rating,0)/rated.length).toFixed(1)+" / 5" : "–";
+  const dist=allSessions().filter(s=>s.start>=since && s.kind==="timer");
+  $("#stRateSub").textContent = dist.length ? "last 14 days · "+(dist.reduce((a,s)=>a+(s.distractions||0),0)/dist.length).toFixed(1)+" distractions/block" : "last 14 days";
+}
+
+function renderChart(){
+  const N=+$("#rangeSel").value, now=Date.now();
+  const days=[]; for(let i=N-1;i>=0;i--){ const d=new Date(startOfDay(now)); d.setDate(d.getDate()-i); days.push(d); }
+  const keys=days.map(d=>dayKey(d.getTime()));
+  const since=days[0].getTime();
+  const sess=allSessions().filter(s=>s.start>=since);
+  const subjIds=[]; settings.subjects.forEach(s=>subjIds.push(s.id));
+  sess.forEach(s=>{ if(!subjIds.includes(s.subject)) subjIds.push(s.subject); });
+  const matrix=keys.map(()=>({}));
+  sess.forEach(s=>{ const i=keys.indexOf(dayKey(s.start)); if(i>=0) matrix[i][s.subject]=(matrix[i][s.subject]||0)+s.min; });
+  const totals=matrix.map(m=>Object.values(m).reduce((a,b)=>a+b,0));
+  const present=subjIds.filter(id=>matrix.some(m=>m[id]));
+  // legend
+  $("#legend").innerHTML = present.length ? present.map(id=>'<span><span class="sw" style="background:'+subjColor(id)+'"></span>'+esc(subjName(id))+'</span>').join("") : "";
+  const goal=settings.goalMin||120;
+  const maxV=Math.max(goal, ...totals, 30);
+  const step = maxV<=120?30: maxV<=240?60: maxV<=480?120:240;
+  const top=Math.ceil(maxV/step)*step;
+  const W=760,H=260,L=44,R=8,Tp=10,B=28, pw=W-L-R, ph=H-Tp-B;
+  const bw=pw/N, barW=Math.max(6,Math.min(28,bw*0.62));
+  let svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Minutes studied per day, last '+N+' days">';
+  svg+='<g class="grid">';
+  for(let v=0;v<=top;v+=step){ const y=Tp+ph-(v/top)*ph; svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'"/><text class="axis" x="'+(L-8)+'" y="'+(y+4)+'" text-anchor="end">'+(v>=60? (v/60)+"h": v+"m")+'</text>'; }
+  svg+='</g>';
+  const gy=Tp+ph-(goal/top)*ph;
+  svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+gy+'" y2="'+gy+'" stroke="var(--ink-2)" stroke-dasharray="4 4" stroke-width="1"/><text class="axis" x="'+(W-R)+'" y="'+(gy-5)+'" text-anchor="end">goal '+fmtMin(goal)+'</text>';
+  matrix.forEach((m,i)=>{
+    const cx=L+bw*i+bw/2, x=cx-barW/2;
+    let y=Tp+ph; const segs=present.filter(id=>m[id]);
+    segs.forEach((id,j)=>{
+      const h=(m[id]/top)*ph; const gap = j>0?2:0; const hh=Math.max(1,h-gap);
+      y-=h; const isTop=j===segs.length-1;
+      if(isTop){ const r=Math.min(4,hh,barW/2); svg+='<path d="M'+x+','+(y+hh+ (0))+' V'+(y+r)+' Q'+x+','+y+' '+(x+r)+','+y+' H'+(x+barW-r)+' Q'+(x+barW)+','+y+' '+(x+barW)+','+(y+r)+' V'+(y+hh)+' Z" fill="'+subjColor(id)+'"/>'; }
+      else svg+='<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+hh+'" fill="'+subjColor(id)+'"/>';
+    });
+    const d=days[i], show = N<=14 || i%3===(N-1)%3;
+    if(show) svg+='<text class="axis" x="'+cx+'" y="'+(H-8)+'" text-anchor="middle">'+(i===N-1?"Today":d.getDate()+"/"+(d.getMonth()+1))+'</text>';
+    svg+='<rect class="hit" data-i="'+i+'" x="'+(L+bw*i)+'" y="'+Tp+'" width="'+bw+'" height="'+ph+'" fill="transparent"/>';
+  });
+  svg+='</svg>';
+  const box=$("#chart"); const tip=$("#tip");
+  box.innerHTML=svg; box.appendChild(tip);
+  box.querySelectorAll(".hit").forEach(el=>{
+    el.addEventListener("mousemove",ev=>{
+      const i=+el.dataset.i, m=matrix[i], d=days[i];
+      const rows=present.filter(id=>m[id]).map(id=>'<div><span class="sw" style="background:'+subjColor(id)+'"></span>'+esc(subjName(id))+': '+fmtMin(m[id])+'</div>').join("");
+      tip.innerHTML='<b>'+d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+' · '+fmtMin(totals[i])+'</b>'+(rows||'<div>No study</div>');
+      const r=box.getBoundingClientRect(); let x=ev.clientX-r.left+12; if(x>r.width-170) x=ev.clientX-r.left-170;
+      tip.style.left=x+"px"; tip.style.top=Math.max(0,ev.clientY-r.top-20)+"px"; tip.style.opacity=1;
+    });
+    el.addEventListener("mouseleave",()=>tip.style.opacity=0);
+  });
+  // table view
+  $("#tableView").innerHTML='<table class="tv"><thead><tr><th>Day</th>'+present.map(id=>'<th>'+esc(subjName(id))+'</th>').join("")+'<th>Total</th></tr></thead><tbody>'+
+    matrix.map((m,i)=>'<tr><td>'+days[i].toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+'</td>'+present.map(id=>'<td class="n">'+(m[id]?fmtMin(m[id]):"")+'</td>').join("")+'<td class="n"><b>'+fmtMin(totals[i])+'</b></td></tr>').reverse().join("")+'</tbody></table>';
+  // by subject
+  $("#bySubjRange").textContent="· last "+N+" days";
+  const bySubj=present.map(id=>({id, v:matrix.reduce((a,m)=>a+(m[id]||0),0)})).sort((a,b)=>b.v-a.v);
+  const mx=Math.max(1,...bySubj.map(x=>x.v));
+  $("#bySubj").innerHTML = bySubj.length ? bySubj.map(x=>'<div class="hbar"><span><span class="sw" style="background:'+subjColor(x.id)+';margin-right:6px"></span>'+esc(subjName(x.id))+'</span><div class="track"><div class="fill" style="width:'+(x.v/mx*100)+'%;background:'+subjColor(x.id)+'"></div></div><span class="v">'+fmtMin(x.v)+'</span></div>').join("")
+    : '<div class="empty">No sessions in this period yet.</div>';
+}
+
+function renderLog(){
+  const f=$("#logFilter").value;
+  const list=allSessions().filter(s=>!f || s.subject===f);
+  if(!list.length){ $("#logList").innerHTML='<div class="empty">No sessions recorded yet. Finish a focus block or add a past session.</div>'; return; }
+  const groups={}; list.forEach(s=>{ (groups[dayKey(s.start)]=groups[dayKey(s.start)]||[]).push(s); });
+  $("#logList").innerHTML = Object.keys(groups).sort().reverse().map(k=>{
+    const arr=groups[k], tot=arr.reduce((a,s)=>a+s.min,0);
+    const label=new Date(k+"T00:00").toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+    return '<div class="day"><div class="dayhead"><span>'+esc(label)+'</span><span>'+fmtMin(tot)+'</span></div>'+arr.map(s=>{
+      const d=new Date(s.start);
+      return '<div class="entry"><div class="t">'+pad(d.getHours())+":"+pad(d.getMinutes())+'</div><div class="main">'+
+        '<div class="title">'+esc(s.task||subjName(s.subject))+'</div>'+
+        (s.note?'<div class="note">'+esc(s.note)+'</div>':'')+
+        '<div class="meta"><span class="pill"><span class="sw" style="background:'+subjColor(s.subject)+'"></span>'+esc(subjName(s.subject))+'</span>'+
+        (s.rating?'<span class="pill">Focus <span class="stars">'+"●".repeat(s.rating)+'<span style="color:var(--ink-3)">'+"●".repeat(5-s.rating).replace(/●/g,"○")+'</span></span> '+s.rating+'/5</span>':'')+
+        (s.kind==="timer"?'<span class="pill">'+(s.distractions||0)+' distraction'+((s.distractions||0)===1?'':'s')+'</span>':'<span class="pill">added manually</span>')+
+        '</div></div><div class="right">'+fmtMin(s.min)+'<br><button class="btn small ghost" data-edit="'+esc(s.id)+'">Edit</button></div></div>';
+    }).join("")+'</div>';
+  }).join("");
+}
+
+function renderSettings(){
+  const set=(id,v)=>{ const el=$(id); if(document.activeElement!==el) el.value=v; };
+  set("#setFocus",settings.focusMin); set("#setShort",settings.shortMin); set("#setLong",settings.longMin); set("#setEvery",settings.longEvery); set("#setGoal",settings.goalMin);
+  const cur=$("#subj").value; fillSubjSelect($("#subj"), settings.subjects.find(s=>s.id===cur)?cur:(settings.subjects[0]||{}).id);
+  const lf=$("#logFilter").value; fillSubjSelect($("#logFilter"), lf, true);
+  try{ const last=localStorage.getItem("study-focus-subj"); if(last && settings.subjects.find(s=>s.id===last) && !cur) $("#subj").value=last; }catch(e){}
+}
+
+function renderAll(){
+  renderSettings();
+  // keep idle timer in sync with settings
+  if(!T.running && T.remaining===T.total && T.total!==modeMin(T.mode)*60000){ T.total=T.remaining=modeMin(T.mode)*60000; }
+  renderTimer(); renderToday(); renderStats(); renderChart(); renderLog(); renderQuote();
+  if($("#quoteDlg").classList.contains("open")) renderQuoteList();
+  if($("#subjDlg").classList.contains("open")) renderSubjects();
+}
+
+/* ---------------- events ---------------- */
+$$("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav.tabs button").forEach(x=>x.setAttribute("aria-selected", x===b));
+  ["focus","track","log"].forEach(t=>$("#tab-"+t).classList.toggle("hidden", t!==b.dataset.tab));
+  if(b.dataset.tab==="track") renderChart();
+}));
+$$("#modes button").forEach(b=>b.addEventListener("click",async()=>{
+  if(b.dataset.mode===T.mode) return;
+  if(T.running || T.remaining!==T.total){ if(!(await confirmBox("Switch mode? The current timer will reset."))) return; }
+  setMode(b.dataset.mode);
+}));
+$("#startBtn").addEventListener("click",start);
+$("#finishBtn").addEventListener("click",finishEarly);
+$("#resetBtn").addEventListener("click",async()=>{ if(T.running || T.remaining!==T.total){ if(!(await confirmBox("Reset the timer? This block won't be logged."))) return; } setMode(T.mode); });
+$("#distractBtn").addEventListener("click",()=>{ T.distractions=(T.distractions||0)+1; saveTimer(); renderTimer(); });
+$("#subj").addEventListener("change",e=>{ try{ localStorage.setItem("study-focus-subj",e.target.value);}catch(_){} });
+
+let setT;
+[["#setFocus","focusMin",1,180],["#setShort","shortMin",1,60],["#setLong","longMin",1,90],["#setEvery","longEvery",2,10],["#setGoal","goalMin",10,900]].forEach(([sel,key,mn,mx])=>{
+  $(sel).addEventListener("change",e=>{
+    const v=Math.max(mn,Math.min(mx,parseInt(e.target.value,10)||settings[key]));
+    e.target.value=v; if(settings[key]===v) return;
+    settings[key]=v; clearTimeout(setT); setT=setTimeout(()=>store.saveSettings(),400);
+    renderAll();
+  });
+});
+
+$("#dRate").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) setRate(dRating===+b.dataset.r?0:+b.dataset.r); });
+$("#dSave").addEventListener("click",saveSession);
+$("#dCancel").addEventListener("click",cancelSession);
+$("#dDelete").addEventListener("click",async()=>{ const s=editing; if(!s) return; closeOverlay("#sessDlg");
+  if(await confirmBox("Delete this "+fmtMin(s.min)+" session? This can't be undone.")){ deleteSession(s); toast("Deleted"); } editing=null; dlgCtx=null; });
+$("#addManual").addEventListener("click",()=>openSession({}));
+$("#logList").addEventListener("click",e=>{ const b=e.target.closest("[data-edit]"); if(!b) return; const s=allSessions().find(x=>x.id===b.dataset.edit); if(s) openSession({session:s}); });
+$("#logFilter").addEventListener("change",renderLog);
+$("#rangeSel").addEventListener("change",renderChart);
+$("#tableToggle").addEventListener("click",()=>{ const tv=$("#tableView"), on=tv.classList.toggle("hidden"); $("#chart").classList.toggle("hidden",!on); $("#legend").classList.toggle("hidden",!on); $("#tableToggle").textContent=on?"Table":"Chart"; });
+
+$("#copyCsv").addEventListener("click",async()=>{
+  const rows=[["date","start","minutes","subject","working_on","focus_rating","distractions","source","notes"]];
+  allSessions().slice().reverse().forEach(s=>{ const d=new Date(s.start); rows.push([dayKey(s.start),pad(d.getHours())+":"+pad(d.getMinutes()),s.min,subjName(s.subject),s.task||"",s.rating||"",s.kind==="timer"?(s.distractions||0):"",s.kind,s.note||""]); });
+  const csv=rows.map(r=>r.map(v=>{ v=String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }).join(",")).join("\n");
+  try{ await navigator.clipboard.writeText(csv); toast("CSV copied — paste into Excel or Sheets"); }catch(e){ toast("Copy was blocked by the browser"); }
+});
+
+$("#qNext").addEventListener("click",nextQuote);
+$("#vibes").addEventListener("click",e=>{ const b=e.target.closest("[data-v]"); if(b) setVibe(b.dataset.v); });
+$("#vibeVol").addEventListener("input",e=>{ vibe.vol=+e.target.value; saveVibe(); if(amb && audioCtx) amb.master.gain.setTargetAtTime(vibeTarget(),audioCtx.currentTime,0.05); });
+$("#vibeOnlyFocus").addEventListener("change",e=>{ ensureCtx(); vibe.onlyFocus=e.target.checked; saveVibe(); syncAmbience(); });
+$("#zenBtn").addEventListener("click",openZen);
+$("#zExit").addEventListener("click",closeZen);
+$("#zStart").addEventListener("click",start);
+$("#zVibe").addEventListener("click",()=>{ const order=["off","lofi","rain","ocean","brown","clock"]; setVibe(order[(order.indexOf(vibe.sound)+1)%order.length]); });
+$("#qEdit").addEventListener("click",()=>{ renderQuoteList(); openOverlay("#quoteDlg"); setTimeout(()=>$("#newQuote").focus(),50); });
+$("#quoteDone").addEventListener("click",()=>{ if($("#newQuote").value.trim()) $("#addQuote").click(); closeOverlay("#quoteDlg"); });
+$("#addQuote").addEventListener("click",()=>{
+  const text=$("#newQuote").value.trim(); if(!text) return;
+  const q=getQuotes().slice(); if(q.length>=100){ toast("Max 100 quotes"); return; }
+  q.push({id:"q"+uid(), text, by:$("#newQuoteBy").value.trim()});
+  settings.quotes=q; $("#newQuote").value=""; $("#newQuoteBy").value="";
+  qIdx=q.length-1; try{ localStorage.setItem("study-focus-q", String(qIdx)); }catch(e){}
+  store.saveSettings(); renderQuoteList(); renderQuote(); toast("Quote added");
+});
+$("#quoteList").addEventListener("click",e=>{
+  const b=e.target.closest("[data-qdel]"); if(!b) return;
+  settings.quotes=getQuotes().filter(x=>x.id!==b.dataset.qdel); qIdx=-1;
+  store.saveSettings(); renderQuoteList(); renderQuote();
+});
+$("#subjBtn").addEventListener("click",()=>{ renderSubjects(); openOverlay("#subjDlg"); });
+$("#subjDone").addEventListener("click",()=>{
+  let changed=false;
+  $$("#subjList input").forEach(inp=>{ const s=settings.subjects.find(x=>x.id===inp.dataset.id); const v=inp.value.trim(); if(s && v && s.name!==v){ s.name=v; changed=true; } });
+  if(changed) store.saveSettings();
+  closeOverlay("#subjDlg"); renderAll();
+});
+$("#addSubj").addEventListener("click",()=>{
+  const name=$("#newSubj").value.trim(); if(!name) return;
+  const slot=freeSlot(); if(!slot){ toast("Max 8 subjects"); return; }
+  settings.subjects.push({id:"s"+uid(), name, slot}); $("#newSubj").value="";
+  store.saveSettings(); renderSubjects(); renderAll();
+});
+$("#newSubj").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#addSubj").click(); });
+$("#subjList").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-del]"); if(!b) return;
+  const s=settings.subjects.find(x=>x.id===b.dataset.del); if(!s) return;
+  if(!(await confirmBox('Remove "'+s.name+'"? Past sessions stay in your record.'))) return;
+  settings.subjects=settings.subjects.filter(x=>x.id!==s.id);
+  settings.archived=(settings.archived||[]).filter(x=>x.id!==s.id).concat([{id:s.id,name:s.name,slot:null}]);
+  store.saveSettings(); renderSubjects(); renderAll();
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape" && $("#zen").classList.contains("open")){ closeZen(); return; }
+  if(e.code==="Space" && $("#zen").classList.contains("open") && !$(".overlay.open")){ e.preventDefault(); start(); return; }
+  if(e.key==="Escape"){ if($("#sessDlg").classList.contains("open")) cancelSession(); else $$(".overlay.open").forEach(o=>o.classList.remove("open")); }
+  if(e.code==="Space" && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName) && !$(".overlay.open") && !$("#tab-focus").classList.contains("hidden")){ e.preventDefault(); start(); }
+});
+
+/* ---------------- boot ---------------- */
+loadTimer();
+if(!T.running && T.remaining===T.total) T.total=T.remaining=modeMin(T.mode)*60000;
+renderAll();
+if(T.running && T.endsAt<=Date.now()) phaseDone();
+initStore();
+})();
+</script>
+</body>
+</html>
