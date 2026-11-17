@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ep 09b · Sum It Up · SQL Quest</title>
+  <meta name="description" content="SQL Quest episode 09b: COUNT, SUM, AVG, MIN and MAX as window functions: NULL and duplicate checks, part-to-whole, integer division, running and rolling totals, moving averages.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=VT323&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/pixel-study.css?v=2">
+  <script src="/assets/pixel-study.js?v=2" defer></script>
+</head>
+<body data-ep="ep09b">
+
+  <nav>
+    <div class="wide">
+      <a class="logo" href="/">datawithkim<b>.dev</b></a>
+      <div class="nav-right">
+        <span class="xp" title="Levels you marked as cleared">★ <span id="xp">0/5</span><span class="long"> cleared</span></span>
+        <a href="/sql/">SQL Quest</a>
+        <a class="hide-sm" href="/#notes">← notes</a>
+      </div>
+    </div>
+    <div class="track" aria-hidden="true"></div>
+  </nav>
+
+  <header class="wide hero">
+    <div>
+      <div class="chip">SQL Quest · episode 09b · world 2 · window saga 2/4</div>
+      <h1>SUM IT<br><span class="hl">UP</span></h1>
+      <p class="lead">Totals that never forget the details. COUNT, SUM, AVG, MIN and MAX over windows: health checks, shares, comparisons, and running totals.</p>
+      <div class="meta"><span>2026-11-17</span><span>·</span><span>15 min read</span><span>·</span><span class="t">#sql #window-functions #aggregates #data-quality</span></div>
+    </div>
+    <div>
+      <div class="px scene-box"><div class="scene-slot"></div></div>
+      <p class="scene-cap">the cat counted the rows. twice. (duplicate detected)</p>
+    </div>
+  </header>
+
+  <article class="read">
+
+    <section class="coldopen reveal">
+      <p>A pipeline finished at 6 a.m. The dashboard says sales went up 30% overnight. Good news? Or did the same orders get loaded twice?</p>
+      <p>Before anyone celebrates, two questions: <em>is anything missing?</em> and <em>is anything counted twice?</em> Both are answered by the same five functions you already know, plus <code>OVER</code>.</p>
+      <p class="big-idea">Aggregate window functions answer "how much?" while every row stays where it is.</p>
+    </section>
+
+    <section class="chapter reveal" id="ch1" style="--c: var(--mint)">
+      <div class="ch-head"><span class="ch-num">level 01</span><span class="ch-year">COUNT</span></div>
+      <h2>The data health check</h2>
+      <table class="std wrap"><tr><th>expression</th><th>counts</th><th>Customers table (5 rows)</th></tr><tr><td>COUNT(*)</td><td>rows</td><td>5</td></tr><tr><td>COUNT(1)</td><td>rows (a constant is never NULL)</td><td>5</td></tr><tr><td>COUNT(Score)</td><td>non-NULL values</td><td>4: Anna has no score</td></tr><tr><td>COUNT(Country)</td><td>non-NULL values, duplicates included</td><td>5, but only 2 distinct countries</td></tr></table>
+      <p><strong>Missing values:</strong> <code>COUNT(*) - COUNT(col)</code> is the number of NULLs. <strong>Duplicates:</strong> partition by the column that should be unique and count.</p>
+      <div class="px lab">
+        <span class="k">// lab · duplicates in the archive table</span>
+        <pre class="sql"><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> (
+    <span class="kw">SELECT</span> OrderID,
+           <span class="fn">COUNT</span>(*) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> OrderID) <span class="kw">AS</span> CheckPK
+    <span class="kw">FROM</span> Sales.OrdersArchive
+) t
+<span class="kw">WHERE</span> CheckPK &gt; 1;</pre>
+        <pre class="out">OrderID  CheckPK
+4        2
+4        2
+6        3
+6        3
+6        3</pre>
+        <p class="note">Same query on Sales.Orders: CheckPK = 1 everywhere (OrderID is a real primary key). The archive has no constraint: 5 rows returned, but only 3 are extra copies. Deleting all 5 would delete the orders. Keeping one per ID is the job of ROW_NUMBER in the next episode.</p>
+      </div>
+      <div class="px cmp">
+        <span class="k">// gotcha · COUNT(DISTINCT) and windows</span>
+        <p><code>COUNT(DISTINCT x) OVER (...)</code> is not allowed in SQL Server (Msg 10759) and not in PostgreSQL either. Use a GROUP BY subquery for distinct counts.</p>
+      </div>
+      <p class="hook">Rows are complete and unique. Now: whose share is biggest? →</p>
+      <div class="px save" style="--c: var(--mint)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">Completeness (NULLs) and uniqueness (duplicates): two COUNTs that decide whether any total can be trusted.</p>
+          <div class="terms"><button class="term" data-def="COUNT(*) counts rows. COUNT(col) counts only rows where col is not NULL.">COUNT(*) vs COUNT(col)</button><button class="term" data-def="A column that uniquely identifies each row: no duplicates and no NULLs.">primary key</button><button class="term" data-def="A test run after a load, for example no NULLs in key columns and no duplicate keys.">data quality check</button></div>
+          <label class="clear"><input type="checkbox" data-ch="1"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch2" style="--c: var(--sky)">
+      <div class="ch-head"><span class="ch-num">level 02</span><span class="ch-year">SUM</span></div>
+      <h2>Part-to-whole, and the zero that lied</h2>
+      <div class="px lab">
+        <span class="k">// lab · each order's % of total sales</span>
+        <pre class="sql"><span class="kw">SELECT</span> OrderID, Sales,
+       Sales / <span class="fn">SUM</span>(Sales) <span class="kw">OVER</span> () * 100 <span class="kw">AS</span> PctOfTotal
+<span class="kw">FROM</span> Sales.Orders;</pre>
+        <pre class="out err">OrderID  Sales  PctOfTotal
+1        10     0
+8        90     0      &lt;- should be 23.68</pre>
+        <p class="note">Sales is INT. INT / INT is integer division: 10 / 380 = 0, and 0 × 100 = 0. Multiplying by 100 comes too late.</p>
+        <pre class="sql"><span class="fn">ROUND</span>(<span class="fn">CAST</span>(Sales <span class="kw">AS</span> <span class="fn">FLOAT</span>) / <span class="fn">SUM</span>(Sales) <span class="kw">OVER</span> () * 100, 2) <span class="kw">AS</span> PctOfTotal
+<span class="c">-- or: Sales * 100.0 / SUM(Sales) OVER ()</span></pre>
+        <pre class="out">OrderID  Sales  PctOfTotal
+1        10     2.63
+4        60     15.79
+8        90     23.68
+...      ...    sum = 99.99 (rounding drift, not a bug)</pre>
+      </div>
+      <p>The top 3 orders (8, 4, 10) make up 55% of sales; the smallest 3 make up 12%. That uneven split is what part-to-whole analysis is for, and it's the start of a Pareto / ABC analysis.</p>
+      <p class="hook">Totals and shares done. But averages hide a NULL trap →</p>
+      <div class="px save" style="--c: var(--sky)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">Divide decimals, not integers: CAST or * 100.0 before the division.</p>
+          <div class="terms"><button class="term" data-def="Comparing a value with the total it belongs to, usually as a percentage.">part-to-whole</button><button class="term" data-def="Dividing two integers drops the decimals: 10 / 380 = 0 in SQL Server.">integer division</button><button class="term" data-def="Rounds x to 2 decimal places. Rounded percentages may add to 99.99 or 100.01.">ROUND(x, 2)</button></div>
+          <label class="clear"><input type="checkbox" data-ch="2"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch3" style="--c: var(--lav)">
+      <div class="ch-head"><span class="ch-num">level 03</span><span class="ch-year">AVG · MIN · MAX</span></div>
+      <h2>What does a NULL mean?</h2>
+      <p>Aggregates skip NULLs. Replacing NULL with 0 (<code>COALESCE(Sales, 0)</code>) is a business decision, and it moves some functions but not others:</p>
+      <table class="std num wrap"><tr><th>Gloves sales 30, 70, ?</th><th>AVG</th><th>MIN</th><th>MAX</th></tr><tr><td>? = NULL (skipped)</td><td>50</td><td>30</td><td>70</td></tr><tr><td>? = 0 (COALESCE)</td><td><span class="bad">33</span></td><td><span class="bad">0</span></td><td>70</td></tr></table>
+      <p>Same on customers: <code>AVG(Score)</code> = 2500 / 4 = 625, <code>AVG(COALESCE(Score, 0))</code> = 2500 / 5 = 500. A customer who was never scored and a customer who scored 0 are not the same thing. Decide once, write it down, use it everywhere in the report.</p>
+      <div class="px lab">
+        <span class="k">// lab · compare each order with its product</span>
+        <pre class="sql"><span class="kw">SELECT</span> OrderID, ProductID, Sales,
+       <span class="fn">AVG</span>(Sales) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> ProductID)               <span class="kw">AS</span> AvgProduct,
+       <span class="fn">MAX</span>(Sales) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> ProductID)               <span class="kw">AS</span> MaxProduct,
+       Sales - <span class="fn">MIN</span>(Sales) <span class="kw">OVER</span> ()                              <span class="kw">AS</span> DeviationFromMin
+<span class="kw">FROM</span> Sales.Orders;</pre>
+        <pre class="out">ProductID  orders  AvgProduct  Min  Max   range
+101        4       35          10   90    80   &lt;- biggest total, most uneven
+102        3       35          15   60    45
+104        2       37 (37.5!)  25   50    25
+105        1       60          60   60    0    &lt;- 1 order: average isn't reliable</pre>
+        <p class="note">104 shows 37 because AVG on an INT column returns INT in SQL Server. PostgreSQL returns 37.5. Orders above the overall average (38): 4, 6, 8, 10, found with a subquery and <code>WHERE Sales &gt; AvgSales</code>.</p>
+      </div>
+      <p class="hook">One more family of questions: how are we doing <em>over time</em>? →</p>
+      <div class="px save" style="--c: var(--lav)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">COALESCE before AVG changes the denominator. Before MIN, it can make a missing value the minimum.</p>
+          <div class="terms"><button class="term" data-def="Returns the first non-NULL argument: COALESCE(Sales, 0) turns NULL into 0. Standard SQL, works in PostgreSQL too (ISNULL does not).">COALESCE</button><button class="term" data-def="Distance from the best or worst value: MAX(x) OVER () - x or x - MIN(x) OVER ().">compare to extremes</button><button class="term" data-def="A value far from the rest, like one 90 order when the average is 38.">outlier</button></div>
+          <label class="clear"><input type="checkbox" data-ch="3"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch4" style="--c: var(--pink)">
+      <div class="ch-head"><span class="ch-num">level 04</span><span class="ch-year">over time</span></div>
+      <h2>Running, rolling, moving</h2>
+      <figure class="px fig reveal"><div class="fig-scroll"><svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bar chart for six months. The running total grows every month up to 175. The rolling total over three months goes 20, 30, 60, 45, 105, 115, rising and falling."><text x="30" y="28" class="h2" text-anchor="start">running total vs rolling total (2 preceding)</text><line x1="40" y1="260" x2="700" y2="260" stroke="#4a4068" stroke-width="2"/><rect x="70" y="239" width="34" height="21" fill="#9ed8c3"/><rect x="110" y="239" width="34" height="21" fill="#f6c58f"/><text x="87" y="232.88888888888889" class="nsm" text-anchor="middle">20</text><text x="127" y="232.88888888888889" class="nsm" text-anchor="middle">20</text><text x="107" y="282" class="n" text-anchor="middle">Jan</text><rect x="175" y="228" width="34" height="32" fill="#9ed8c3"/><rect x="215" y="228" width="34" height="32" fill="#f6c58f"/><text x="192" y="222.33333333333334" class="nsm" text-anchor="middle">30</text><text x="232" y="222.33333333333334" class="nsm" text-anchor="middle">30</text><text x="212" y="282" class="n" text-anchor="middle">Feb</text><rect x="280" y="197" width="34" height="63" fill="#9ed8c3"/><rect x="320" y="197" width="34" height="63" fill="#f6c58f"/><text x="297" y="190.66666666666666" class="nsm" text-anchor="middle">60</text><text x="337" y="190.66666666666666" class="nsm" text-anchor="middle">60</text><text x="317" y="282" class="n" text-anchor="middle">Mar</text><rect x="385" y="191" width="34" height="69" fill="#9ed8c3"/><rect x="425" y="212" width="34" height="48" fill="#f6c58f"/><text x="402" y="185.38888888888889" class="nsm" text-anchor="middle">65</text><text x="442" y="206.5" class="nsm" text-anchor="middle">45</text><text x="422" y="282" class="n" text-anchor="middle">Apr</text><rect x="490" y="118" width="34" height="142" fill="#9ed8c3"/><rect x="530" y="149" width="34" height="111" fill="#f6c58f"/><text x="507" y="111.5" class="nsm" text-anchor="middle">135</text><text x="547" y="143.16666666666666" class="nsm" text-anchor="middle">105</text><text x="527" y="282" class="n" text-anchor="middle">Jun</text><rect x="595" y="75" width="34" height="185" fill="#9ed8c3"/><rect x="635" y="139" width="34" height="121" fill="#f6c58f"/><text x="612" y="69.27777777777777" class="nsm" text-anchor="middle">175</text><text x="652" y="132.61111111111111" class="nsm" text-anchor="middle">115</text><text x="632" y="282" class="n" text-anchor="middle">Jul</text><rect x="30" y="42" width="14" height="14" fill="#9ed8c3"/><text x="52" y="55" class="s" text-anchor="start">running · keeps everything</text><rect x="30" y="64" width="14" height="14" fill="#f6c58f"/><text x="52" y="77" class="s" text-anchor="start">rolling · drops the oldest</text></svg></div><figcaption>Running totals only grow: good for tracking progress against a target. Rolling totals go up and down: good for spotting the recent trend.</figcaption></figure>
+      <table class="std wrap"><tr><th></th><th>frame</th><th>question</th></tr><tr><td>running total</td><td>ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</td><td>how much so far? (YTD vs target)</td></tr><tr><td>rolling total</td><td>ROWS BETWEEN 2 PRECEDING AND CURRENT ROW</td><td>how are the last 3 periods doing?</td></tr><tr><td>moving average</td><td>AVG + ORDER BY date (+ frame)</td><td>what is the smoothed trend?</td></tr></table>
+      <div class="px lab">
+        <span class="k">// lab · moving average per product over time</span>
+        <pre class="sql"><span class="kw">SELECT</span> OrderID, ProductID, OrderDate, Sales,
+       <span class="fn">AVG</span>(Sales) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> ProductID)                      <span class="kw">AS</span> AvgByProduct,
+       <span class="fn">AVG</span>(Sales) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> ProductID <span class="kw">ORDER</span> <span class="kw">BY</span> OrderDate)   <span class="kw">AS</span> MovingAvg,
+       <span class="fn">AVG</span>(Sales) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> ProductID <span class="kw">ORDER</span> <span class="kw">BY</span> OrderDate
+                        <span class="kw">ROWS</span> <span class="kw">BETWEEN</span> <span class="kw">CURRENT</span> <span class="kw">ROW</span> <span class="kw">AND</span> 1 <span class="kw">FOLLOWING</span>)    <span class="kw">AS</span> RollingAvg
+<span class="kw">FROM</span> Sales.Orders;</pre>
+        <pre class="out">ProductID  OrderDate   Sales  AvgByProduct  MovingAvg  RollingAvg
+101        2025-01-01  10     35            10         15
+101        2025-01-10  20     35            15         55
+101        2025-02-18  90     35            40         55
+101        2025-03-10  20     35            35         20   &lt;- no next order: frame shrinks
+102        2025-01-05  15     35            15         22   &lt;- 22.5 truncated
+102        2025-02-15  30     35            22         45
+102        2025-03-15  60     35            35         60</pre>
+        <p class="note">My mistakes on the way: a trailing comma before FROM (Msg 156) and the same alias used twice. The last MovingAvg of each product equals AvgByProduct: a free correctness check.</p>
+      </div>
+      <div class="px cmp">
+        <span class="k">// trap · "last 30 days" is not ROWS 29 PRECEDING</span>
+        <p><code>ROWS</code> counts rows, not days. If May is missing, "2 preceding" from June reaches back to March.</p>
+        <table class="std wrap"><tr><th></th><th>how to get a true time window</th></tr><tr><td>PostgreSQL</td><td>SUM(sales) OVER (ORDER BY order_date RANGE BETWEEN INTERVAL '29 days' PRECEDING AND CURRENT ROW)</td></tr><tr><td>SQL Server</td><td>aggregate to one row per day, fill gaps from a calendar table, then ROWS 29 PRECEDING</td></tr></table>
+      </div>
+      <p class="hook">Last level: putting the checks into a pipeline →</p>
+      <div class="px save" style="--c: var(--pink)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">Running totals only grow; rolling totals rise and fall. Sort by a real date, make it unique, mind the gaps.</p>
+          <div class="terms"><button class="term" data-def="A cumulative sum from the first row to the current row; keeps all older data.">running total</button><button class="term" data-def="A sum over a fixed number of recent rows; the oldest row drops out as a new one comes in.">rolling total</button><button class="term" data-def="An average over a sliding window, used to smooth spikes and show a trend.">moving average</button></div>
+          <label class="clear"><input type="checkbox" data-ch="4"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch5" style="--c: var(--peach)">
+      <div class="ch-head"><span class="ch-num">level 05</span><span class="ch-year">DE angle</span></div>
+      <h2>In real data engineering</h2>
+      <p><strong>Post-load tests.</strong> Every load should prove two things: key columns are complete (<code>COUNT(*) - COUNT(key) = 0</code>) and keys are unique (<code>MAX(COUNT(*) OVER (PARTITION BY key)) = 1</code>, via a subquery). dbt ships these as <code>not_null</code> and <code>unique</code> tests. The duplicates in OrdersArchive are exactly what a staging table looks like when a source re-sends changed rows.</p>
+      <p><strong>Reconciliation.</strong> <code>COUNT(*)</code> in the target vs the source file is the cheapest check there is. Log it on every run.</p>
+      <p><strong>Dashboards.</strong> YTD lines are running totals per business line; trend lines are moving averages; "% of total" cards are part-to-whole. Computing them in SQL, at the right grain, keeps the Power BI model simple, and the NULL rule documented in one place.</p>
+      <div class="px save" style="--c: var(--peach)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">Before you publish a number: no NULL keys, no duplicate keys, row counts match.</p>
+          <div class="terms"><button class="term" data-def="Comparing counts or totals between source and target to prove nothing was lost or duplicated.">reconciliation</button><button class="term" data-def="A landing table for raw loaded data, usually without constraints, cleaned before reporting.">staging table</button><button class="term" data-def="Year to date: a running total that restarts every January 1st, PARTITION BY YEAR(date).">YTD</button></div>
+          <label class="clear"><input type="checkbox" data-ch="5"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <div class="px epilogue">
+      <div class="tag">// episode cleared</div>
+      <p>Found the duplicates, fixed a division that always returned 0, and learned that a NULL needs a decision, not a default. Next: removing those duplicates and crowning the best, on the podium.</p>
+      <p class="next">next → ep09c · stand on the podium (soon)</p>
+    </div>
+
+    <h2 class="section-title" id="glossary" style="--c: var(--lav)">Glossary</h2>
+    <p class="section-sub">All the new words from this episode.</p>
+    <dl class="gloss" id="gloss"></dl>
+
+    <h2 class="section-title" id="quiz" style="--c: var(--peach)">Boss level: quick quiz</h2>
+    <p class="section-sub">No pressure, the cat isn't grading.</p>
+    <div class="px quiz" id="quizbox"></div>
+
+    <section class="sources" id="sources">
+      <h3>// sources</h3>
+      <ol>
+        <li><a href="https://www.postgresql.org/docs/current/functions-aggregate.html" target="_blank" rel="noopener">PostgreSQL docs: Aggregate Functions</a></li>
+        <li><a href="https://www.postgresql.org/docs/current/functions-window.html" target="_blank" rel="noopener">PostgreSQL docs: Window Functions</a></li>
+        <li><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql" target="_blank" rel="noopener">Microsoft Learn: SELECT - OVER clause (Transact-SQL)</a></li>
+        <li>Lab data: the SalesDB sample database from the course I followed, run in SQL Server Management Studio.</li>
+      </ol>
+    </section>
+
+    <div class="ep-nav"><a class="px" href="/sql/ep09a-see-through-the-window/">← ep09a · See Through the Window</a><span class="px">ep09c · Stand on the Podium (soon) →</span></div>
+  </article>
+
+  <footer>
+    <div class="wide">
+      <span>© <span id="yr">2026</span> Kim Nguyen · SQL Quest</span>
+      <span>made with tea, rain &amp; a sleepy cat</span>
+    </div>
+  </footer>
+
+  <script>
+    window.QUIZ = [
+      {
+            "q": "Customers has 5 rows and one NULL Score. COUNT(Score) returns:",
+            "o": [
+                  "5",
+                  "4",
+                  "NULL"
+            ],
+            "a": 1,
+            "w": "COUNT(column) skips NULLs. COUNT(*) would return 5."
+      },
+      {
+            "q": "How do you find duplicate OrderIDs while keeping every column of the duplicate rows?",
+            "o": [
+                  "COUNT(*) OVER (PARTITION BY OrderID) > 1, filtered in an outer query",
+                  "COUNT(DISTINCT OrderID) OVER ()",
+                  "SELECT DISTINCT *"
+            ],
+            "a": 0,
+            "w": "The window count shows the number of copies on every copy. GROUP BY ... HAVING only lists the keys."
+      },
+      {
+            "q": "Sales is INT. Sales / SUM(Sales) OVER () * 100 returns 0 for every row because:",
+            "o": [
+                  "SUM is wrong without PARTITION BY",
+                  "INT / INT is integer division, so 10 / 380 = 0",
+                  "ROUND is missing"
+            ],
+            "a": 1,
+            "w": "Cast to FLOAT or DECIMAL, or multiply by 100.0 before dividing."
+      },
+      {
+            "q": "Gloves sales are 30, 70 and NULL. AVG(COALESCE(Sales, 0)) is:",
+            "o": [
+                  "50",
+                  "33",
+                  "100"
+            ],
+            "a": 1,
+            "w": "The NULL becomes 0 and counts in the denominator: 100 / 3 = 33 (truncated on INT)."
+      },
+      {
+            "q": "Which frame gives a 3-month rolling total?",
+            "o": [
+                  "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
+                  "ROWS BETWEEN 2 PRECEDING AND CURRENT ROW",
+                  "ROWS BETWEEN 3 PRECEDING AND CURRENT ROW"
+            ],
+            "a": 1,
+            "w": "2 preceding + the current row = 3 rows. 3 PRECEDING would cover 4."
+      },
+      {
+            "q": "ROWS BETWEEN 29 PRECEDING AND CURRENT ROW on order rows means:",
+            "o": [
+                  "the last 30 days",
+                  "the last 30 rows, whatever their dates",
+                  "the last 30 days, but only in SQL Server"
+            ],
+            "a": 1,
+            "w": "ROWS counts rows. For a true time window use RANGE with an INTERVAL in PostgreSQL, or one row per day from a calendar table."
+      }
+];
+  </script>
+</body>
+</html>

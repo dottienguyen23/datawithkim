@@ -204,6 +204,23 @@
     .std th { font-family: "VT323", monospace; font-size: 19px; color: var(--muted); font-weight: 400; }
     .std td:first-child { font-family: "VT323", monospace; font-size: 20px; color: var(--peach); white-space: nowrap; }
     .std td:last-child { color: var(--muted); }
+    .std.num td:last-child { color: var(--text); }
+    .std.wrap td:first-child { white-space: normal; }
+    .std .bad { color: var(--pink); } .std .ok { color: var(--mint); }
+
+    /* code + query output blocks */
+    pre.sql, pre.out { font-family: "VT323", monospace; font-size: 17px; line-height: 1.3; background: var(--bg);
+      padding: 12px 16px; margin: 8px 0 14px; overflow-x: auto; white-space: pre; tab-size: 4; }
+    pre.sql { color: var(--text); border-left: 4px solid var(--sky); }
+    pre.out { color: var(--soft); border-left: 4px solid var(--line); }
+    pre.err { color: var(--pink); border-left: 4px solid var(--pink); }
+    pre .kw { color: var(--pink); } pre .fn { color: var(--lav); } pre .c { color: var(--muted); }
+    pre .s { color: var(--mint); } pre .hi { color: var(--peach); }
+    .lab pre { margin: 10px 0 6px; }
+    .lab .note { font-size: 14.5px !important; color: var(--muted); margin-top: 8px !important; }
+    .cmp { --b: var(--lav); padding: 14px 18px; margin: 10px var(--px) 24px; background: var(--panel); }
+    .cmp .k { font-family: "VT323", monospace; font-size: 20px; color: var(--lav); display: block; margin-bottom: 6px; }
+    .cmp .std { margin-bottom: 6px; }
 
     /* save point: cat tip + terms + checkbox */
     .save { --b: var(--c); display: grid; grid-template-columns: 64px 1fr; gap: 16px; padding: 16px 18px; margin: 10px var(--px) 8px; background: var(--bg-2); }

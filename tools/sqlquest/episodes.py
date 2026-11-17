@@ -22,7 +22,11 @@ WORLDS = [
     'eps': [
       ('ep07', 'ep07-after-enter', 'What happens after Enter', 'Parser → optimizer → executor, execution order, and reading your first EXPLAIN.', 'lab: EXPLAIN five queries', 'soon', 'my SQL2 notes'),
       ('ep08', 'ep08-queries-in-queries', 'Queries inside queries', 'Subqueries, CTEs, WITH RECURSIVE, and temp tables.', 'lab: build an org chart', 'soon', ''),
-      ('ep09', 'ep09-window-functions', 'Window functions', 'ROW_NUMBER / RANK / DENSE_RANK, PARTITION BY, named windows, frames, LAG and LEAD.', 'lab: month-over-month sales', 'soon', 'my sql3 notes'),
+      # Ep 09 · The Window Saga — "See · Sum · Stand · Step"
+      ('ep09a', 'ep09a-see-through-the-window', 'Window Saga 1 · See Through the Window', 'Keep every row, still see the big picture: OVER, PARTITION BY, ORDER BY, frames and the 4 window rules.', 'lab: the three-level report', 'live', 'studied 16 Nov 2026'),
+      ('ep09b', 'ep09b-sum-it-up', 'Window Saga 2 · Sum It Up', 'Totals that never forget the details: COUNT, SUM, AVG, MIN, MAX over windows, running and rolling totals.', 'lab: the data health check', 'live', 'studied 17 Nov 2026'),
+      ('ep09c', 'ep09c-stand-on-the-podium', 'Window Saga 3 · Stand on the Podium', "Who's #1, and what happens on a tie? ROW_NUMBER, RANK, DENSE_RANK, NTILE, CUME_DIST, PERCENT_RANK.", 'lab: keep the latest, crown the best', 'soon', ''),
+      ('ep09d', 'ep09d-step-back-step-ahead', 'Window Saga 4 · Step Back, Step Ahead', 'Compare today with yesterday: LAG, LEAD, FIRST_VALUE and LAST_VALUE.', 'lab: the price detective', 'soon', 'my sql3 notes'),
       ('ep10', 'ep10-code-in-the-db', 'Code that lives in the DB', 'Views, functions, stored procedures and triggers, and when not to use them.', 'lab: an auto updated_at trigger', 'soon', 'my SQL2 notes'),
       ('ep11', 'ep11-make-it-fast', 'Make it fast', 'B-tree, composite, partial and GIN indexes, why an index is ignored, EXPLAIN ANALYZE.', 'lab: the 145× index, extended', 'soon', 'my SQL_1 notes'),
     ]
