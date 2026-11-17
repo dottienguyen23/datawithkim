@@ -1,283 +1,446 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Session Complete — Cat Party</title>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<style>
-  :root{--bg:#140b26;--pink:#ff5fa2;--cyan:#3de1ff;--yellow:#ffd23f;--lime:#9dff5c}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:#fff;font-family:'Press Start 2P',monospace;min-height:100vh;overflow-x:hidden;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-  canvas#bg,canvas#fx{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none}
-  canvas#bg{z-index:0} canvas#fx{z-index:3}
-  .wrap{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;padding:20px 16px 28px}
-  h1{font-size:clamp(16px,4.5vw,30px);line-height:1.5;color:var(--yellow);text-shadow:4px 4px 0 var(--pink),8px 8px 0 #0008}
-  .sub{font-size:11px;color:var(--cyan);margin:10px 0 4px;line-height:1.8}
-  .count{font-size:9px;opacity:.6;margin-bottom:8px}
-  canvas#cat{width:min(320px,76vw);aspect-ratio:80/76;image-rendering:pixelated}
-  .floor{display:flex;gap:4px;margin-top:-6px}
-  .tile{width:20px;height:10px;background:#2b2150}
-  .controls{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;justify-content:center}
-  button,label.btn{font-family:inherit;font-size:10px;padding:13px 14px;border:none;cursor:pointer;color:#fff;background:var(--pink);
-    box-shadow:0 5px 0 #a3245f;border-radius:0;outline:3px solid #000;transition:transform .06s}
-  button:active,label.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #a3245f}
-  .alt{background:#2b2150!important;color:var(--cyan)!important;box-shadow:0 5px 0 #0d0820!important}
-  .small{font-size:8px;padding:8px 10px}
-  input[type=file]{display:none}
-  .source{font-size:8px;color:var(--lime);margin-top:12px;min-height:10px;line-height:1.7;max-width:90vw;word-break:break-word}
-  .bpm{font-size:8px;margin-top:10px;opacity:.8;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
-  input[type=range]{accent-color:var(--pink);width:110px}
-  .player{margin-top:16px;width:340px;max-width:92vw;height:152px;border-radius:12px;overflow:hidden;box-shadow:6px 6px 0 var(--pink)}
-  .player.hidden{display:none}
-  .player iframe{width:100%;height:100%;display:block}
-  .gate{position:fixed;inset:0;z-index:10;background:#140b26ee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;cursor:pointer}
-  .gate.off{display:none}
-  .gate b{font-size:clamp(18px,5vw,34px);color:var(--yellow);text-shadow:4px 4px 0 var(--pink);animation:pulse 1s steps(2) infinite}
-  .gate span{font-size:9px;opacity:.7}
-  @keyframes pulse{50%{opacity:.35}}
-  .credit{font-size:7px;opacity:.5;margin-top:10px;line-height:1.7}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data with Kim</title>
+  <meta name="description" content="Kim Nguyen's data engineering journey — learning, building and sharing in public.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --panel: #121722;
+      --panel-2: #171d2b;
+      --line: #232b3d;
+      --text: #e6e9f0;
+      --muted: #8b93a7;
+      --lime: #c6f432;
+      --cyan: #38bdf8;
+      --pink: #f472b6;
+      --amber: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    /* grid background */
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -1;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
+      opacity: .55;
+    }
+    a { color: var(--lime); text-decoration: none; }
+    .mono { font-family: "JetBrains Mono", monospace; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(11,14,20,.75); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    nav .wrap { display: flex; justify-content: space-between; align-items: center; height: 62px; }
+    .logo { font-family: "JetBrains Mono", monospace; font-weight: 600; color: var(--text); }
+    .logo b { color: var(--lime); }
+    .logo .cursor { display: inline-block; width: 8px; height: 16px; background: var(--lime); margin-left: 3px; vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    nav ul { display: flex; gap: 26px; list-style: none; font-size: 15px; }
+    nav ul a { color: var(--muted); transition: color .2s; }
+    nav ul a:hover { color: var(--lime); }
+
+    /* HERO */
+    .hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center; padding: 90px 0 70px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--lime);
+      border: 1px solid rgba(198,244,50,.35); background: rgba(198,244,50,.07);
+      padding: 6px 12px; border-radius: 999px; margin-bottom: 22px;
+    }
+    .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 10px var(--lime); animation: pulse 2s infinite; }
+    @keyframes pulse { 50% { opacity: .35; } }
+    h1 { font-size: clamp(40px, 6.5vw, 72px); line-height: 1; letter-spacing: -.03em; font-weight: 700; margin-bottom: 22px; }
+    h1 .grad {
+      background: linear-gradient(90deg, var(--lime), var(--cyan) 55%, var(--pink));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .lead { color: var(--muted); font-size: 19px; max-width: 40ch; margin-bottom: 30px; }
+    .btns { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn {
+      font-family: "JetBrains Mono", monospace; font-size: 14px; font-weight: 600;
+      padding: 12px 20px; border-radius: 10px; border: 1px solid var(--line); color: var(--text);
+      transition: transform .15s, border-color .2s, box-shadow .2s;
+    }
+    .btn:hover { transform: translateY(-2px); border-color: var(--lime); }
+    .btn.primary { background: var(--lime); color: #0b0e14; border-color: var(--lime); }
+    .btn.primary:hover { box-shadow: 0 8px 30px rgba(198,244,50,.3); }
+
+    /* TERMINAL */
+    .terminal {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.02);
+    }
+    .term-bar { display: flex; align-items: center; gap: 7px; padding: 12px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+    .term-bar i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+    .term-bar i:nth-child(1) { background: #ff5f57; }
+    .term-bar i:nth-child(2) { background: #febc2e; }
+    .term-bar i:nth-child(3) { background: #28c840; }
+    .term-bar span { margin-left: 10px; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); }
+    #term { font-family: "JetBrains Mono", monospace; font-size: 13.5px; padding: 18px; min-height: 290px; white-space: pre-wrap; }
+    #term .p { color: var(--lime); }
+    #term .c { color: var(--text); }
+    #term .o { color: var(--muted); }
+    #term .h { color: var(--cyan); }
+    #term .caret { display: inline-block; width: 8px; height: 15px; background: var(--text); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+
+    /* SECTIONS */
+    section { padding: 80px 0; }
+    .label { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--lime); margin-bottom: 10px; }
+    h2 { font-size: clamp(30px, 4.5vw, 44px); letter-spacing: -.02em; line-height: 1.1; margin-bottom: 14px; }
+    .sub { color: var(--muted); max-width: 60ch; margin-bottom: 40px; }
+
+    /* PIPELINE */
+    .pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; position: relative; }
+    .stage {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; position: relative;
+      transition: border-color .2s, transform .2s;
+    }
+    .stage:hover { border-color: var(--c); transform: translateY(-3px); }
+    .stage .num { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--c); }
+    .stage h3 { font-size: 22px; margin: 6px 0 8px; }
+    .stage p { color: var(--muted); font-size: 15px; }
+    .stage .tool { margin-top: 14px; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--c); opacity: .85; }
+    .flow { height: 4px; margin: 26px 0 0; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; }
+    .flow::after {
+      content: ""; position: absolute; top: 0; left: -30%; width: 30%; height: 100%;
+      background: linear-gradient(90deg, transparent, var(--lime), var(--cyan), transparent);
+      animation: flow 2.6s linear infinite;
+    }
+    @keyframes flow { to { left: 100%; } }
+
+    /* NOTES */
+    .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .note {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px;
+      display: flex; flex-direction: column; color: var(--text); transition: border-color .2s, transform .2s;
+    }
+    .note:hover { border-color: var(--lime); transform: translateY(-3px); }
+    .note .meta { display: flex; justify-content: space-between; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+    .note h3 { font-size: 19px; line-height: 1.3; margin-bottom: 8px; }
+    .note p { color: var(--muted); font-size: 14.5px; flex: 1; margin-bottom: 14px; }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tag { font-family: "JetBrains Mono", monospace; font-size: 11.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--cyan); }
+    .note.soon { border-style: dashed; opacity: .6; }
+
+    /* ROADMAP */
+    .roadmap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
+    .step { display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+    .step .ic { font-family: "JetBrains Mono", monospace; font-size: 14px; }
+    .step .name { font-weight: 500; }
+    .bar { width: 120px; height: 6px; background: var(--line); border-radius: 6px; overflow: hidden; }
+    .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--lime), var(--cyan)); border-radius: 6px; width: 0; transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+    .done .ic { color: var(--lime); }
+    .doing .ic { color: var(--amber); }
+    .todo .ic, .todo .name { color: var(--muted); }
+
+    /* PROJECTS */
+    .projects { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .project {
+      background: linear-gradient(160deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--line); border-radius: 14px; padding: 26px; transition: border-color .2s;
+    }
+    .project:hover { border-color: var(--pink); }
+    .project .kind { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--pink); }
+    .project h3 { font-size: 22px; margin: 6px 0 10px; }
+    .project p { color: var(--muted); font-size: 15px; margin-bottom: 16px; }
+
+    /* CONTACT */
+    .contact {
+      text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+      padding: 60px 24px; position: relative; overflow: hidden;
+    }
+    .contact::before {
+      content: ""; position: absolute; width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(198,244,50,.18), transparent 70%);
+      top: -200px; left: 50%; transform: translateX(-50%);
+    }
+    .contact h2, .contact p, .contact .btns { position: relative; }
+    .contact p { color: var(--muted); max-width: 48ch; margin: 0 auto 28px; }
+    .contact .btns { justify-content: center; }
+
+    footer { padding: 40px 0; color: var(--muted); font-size: 14px; }
+    footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; border-top: 1px solid var(--line); padding-top: 24px; }
+
+    /* reveal on scroll */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s, transform .7s; }
+    .reveal.in { opacity: 1; transform: none; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; padding: 56px 0 40px; }
+      .pipeline, .notes, .projects, .roadmap { grid-template-columns: 1fr; }
+      nav ul { display: none; }
+      .bar { width: 80px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+  </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
-<canvas id="fx"></canvas>
-<div class="gate" id="gate"><b>▶ TAP TO PARTY</b><span>tap anywhere to start the music</span></div>
-<div class="wrap">
-  <h1>SESSION<br>COMPLETE!</h1>
-  <p class="sub">Great work today, Tuyền</p>
-  <p class="count" id="count"></p>
-  <canvas id="cat" width="320" height="304" aria-label="Pixel cat with a poker face"></canvas>
-  <div class="floor" id="floor"></div>
-  <div class="controls">
-    <button id="play">▶ PARTY</button>
-  </div>
-  <div class="source" id="source">Loading Spotify…</div>
-  <div class="bpm">BPM <input type="range" id="bpm" min="60" max="180" value="130"><span id="bpmv">130</span>
-    <button class="alt small" id="tap">TAP</button></div>
-  <div class="player" id="playerBox"><div id="sp"></div></div>
-  <p class="credit">♫ POKER FACE — PANDEMXNIUM, pipenpodol (oury)</p>
-</div>
 
-<script>
-/* ===== settings ===== */
-const SPOTIFY_URI = 'spotify:track:7DGayzFQRn99x20IUfqFko'; // POKER FACE on Spotify
-let BPM = 130;                        // tempo of the original mix
+  <nav>
+    <div class="wrap">
+      <a class="logo" href="#">datawithkim<b>.dev</b><span class="cursor"></span></a>
+      <ul>
+        <li><a href="#system">System</a></li>
+        <li><a href="#notes">Notes</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+        <li><a href="/sql/">SQL Quest</a></li>
+        <li><a href="#projects">Projects</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
 
-/* ===== study-day counter (this browser only) ===== */
-(function(){
-  let n=null;
-  try{const t=new Date().toISOString().slice(0,10);n=+(localStorage.getItem('cp_n')||0);
-    if(localStorage.getItem('cp_last')!==t){n++;localStorage.setItem('cp_n',n);localStorage.setItem('cp_last',t);}}catch(e){}
-  const d=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-  document.getElementById('count').textContent=n?`${d} · STUDY DAY #${n}`:d;
-})();
+  <!-- HERO -->
+  <header class="wrap hero">
+    <div>
+      <div class="badge"><span class="dot"></span> learning in public · 2026</div>
+      <h1>Building my<br><span class="grad">data engineering</span><br>journey, in public.</h1>
+      <p class="lead">I'm Kim Nguyen — I study, build pipelines, break things, fix them, and write down everything I learn here.</p>
+      <div class="btns">
+        <a class="btn primary" href="#notes">$ read --notes</a>
+        <a class="btn" href="#roadmap">view roadmap →</a>
+      </div>
+    </div>
 
-/* ===== pixel cat: separate parts with joints ===== */
-const PAL={K:'#7a4a10',O:'#ffd23f',D:'#e8a317',W:'#ffffff',P:'#ff9fc4',E:'#1b1030',G:'#3de1ff',S:'#1b1030',L:'#ffffff'};
-const HEAD=[
-"..K..........K..",
-".KPK........KPK.",
-".KPPK......KPPK.",
-".KOOOKKKKKKOOOK.",
-"KOODOOOOOOOODOOK",
-"KOOEEOOOOOOEEOOK",
-"KOOEGOOOOOOEGOOK",
-"KOPOOOOPPOOOOPOK",
-"KOOOOOKKKKOOOOOK",
-".KOOOOOOOOOOOOK.",
-"..KKOOOOOOOOKK.."];
-const HEAD_BLINK=HEAD.map((r,i)=>i===5?"KOOOOOOOOOOOOOOK":i===6?"KOOKKOOOOOOKKOOK":r);
-const HEAD_SHADES=HEAD.map((r,i)=>i===5?"KOSSSSSSSSSSSSOK":i===6?"KOSLSSSOOSLSSSOK":r);
-const TORSO=["KOOWWWWWWOOK","KOOWWWWWWOOK","KOOWWWWWWOOK","KOOOWWWWOOOK",".KKKKKKKKKK."];
-const LEG=["KOOK","KOOK","KWWK","KKKK"];
-const ARM=["KOK","KOK","KOK","KOK","KWK",".K."];
-const TAIL=[".KK","KOK","KOK","KOK","KOK",".K."];
-function bake(rows){const k=document.createElement('canvas');k.width=rows[0].length;k.height=rows.length;const x=k.getContext('2d');
-  rows.forEach((r,y)=>[...r].forEach((ch,i)=>{if(PAL[ch]){x.fillStyle=PAL[ch];x.fillRect(i,y,1,1);}}));return k;}
-const IMG={head:bake(HEAD),blink:bake(HEAD_BLINK),shades:bake(HEAD_SHADES),torso:bake(TORSO),leg:bake(LEG),arm:bake(ARM),tail:bake(TAIL)};
+    <div class="terminal" aria-label="Terminal introduction">
+      <div class="term-bar"><i></i><i></i><i></i><span>kim@datawithkim: ~</span></div>
+      <div id="term"></div>
+    </div>
+  </header>
 
-const cv=document.getElementById('cat'),c=cv.getContext('2d');c.imageSmoothingEnabled=false;
-const L=document.createElement('canvas');L.width=80;L.height=76;const l=L.getContext('2d');l.imageSmoothingEnabled=false;
-function part(img,px,py,x,y,a=0){l.save();l.translate(x,y);if(a)l.rotate(a);l.drawImage(img,-px,-py);l.restore();}
-const r2=v=>Math.round(v*2)/2; // move in half-pixels: smooth but still pixel-art
+  <!-- SYSTEM -->
+  <section id="system" class="reveal">
+    <div class="wrap">
+      <p class="label">// 01 — the system</p>
+      <h2>Learn → Write → Publish → Share</h2>
+      <p class="sub">This site is itself a data pipeline: notes are written once, then flow automatically from my workspace to the web.</p>
+      <div class="pipeline">
+        <div class="stage" style="--c: var(--lime)">
+          <div class="num">01 / extract</div>
+          <h3>Learn</h3>
+          <p>Courses, labs, real work problems and late-night debugging.</p>
+          <div class="tool">linux · sql · python</div>
+        </div>
+        <div class="stage" style="--c: var(--cyan)">
+          <div class="num">02 / transform</div>
+          <h3>Write</h3>
+          <p>Every session becomes a structured note in my Learning Hub.</p>
+          <div class="tool">notion</div>
+        </div>
+        <div class="stage" style="--c: var(--amber)">
+          <div class="num">03 / load</div>
+          <h3>Publish</h3>
+          <p>A scheduled pipeline converts notes to Markdown and deploys them.</p>
+          <div class="tool">git · github actions</div>
+        </div>
+        <div class="stage" style="--c: var(--pink)">
+          <div class="num">04 / serve</div>
+          <h3>Share</h3>
+          <p>RSS feed, LinkedIn posts and automations built with n8n.</p>
+          <div class="tool">rss · n8n</div>
+        </div>
+      </div>
+      <div class="flow"></div>
+    </div>
+  </section>
 
-/* choreography: 16-beat loop = 4 moves x 4 beats */
-const TAU=Math.PI*2;
-function targetPose(t,dancing){
-  const P={x:0,y:0,lean:0,sx:1,sy:1,head:0,armL:.25,armR:-.25,legL:0,legR:0,tail:0,spin:1,hop:0};
-  if(!dancing){const br=Math.sin(t*1.6);P.sy=1+.02*br;P.head=.05*Math.sin(t*.8);P.tail=.25*Math.sin(t*1.3);return P;}
-  const beat=Math.floor(t),f=t-beat,move=Math.floor(beat/4)%4,groove=Math.cos(TAU*f),down=Math.max(0,groove);
-  P.y=1.2*groove; P.sx=1+.06*down; P.sy=1-.06*down;          // knees bend on every beat
-  P.tail=.55*Math.sin(Math.PI*t); P.head=.10*Math.sin(TAU*f);
-  if(move===0){ // bounce + alternating arm pumps
-    const s=(1+Math.sin(Math.PI*t))/2;
-    P.armL=.3+2.3*s; P.armR=-(.3+2.3*(1-s)); P.head=.18*Math.sin(Math.PI*t); P.lean=.05*Math.sin(Math.PI*t);
-  }else if(move===1){ // side steps with swinging arms
-    const sw=Math.sin(Math.PI*t/2);
-    P.x=3*sw; P.lean=-.12*Math.cos(Math.PI*t/2);
-    P.armL=.6+.6*Math.sin(Math.PI*t); P.armR=-(.6-.6*Math.sin(Math.PI*t));
-    P.legL=2*Math.max(0,Math.sin(Math.PI*t)); P.legR=2*Math.max(0,-Math.sin(Math.PI*t));
-    P.head=-.15*Math.cos(Math.PI*t/2);
-  }else if(move===2){ // raise the roof
-    P.armL=2.55+.3*down; P.armR=-(2.55+.3*down); P.y=1.8*groove; P.head=.22*groove;
-  }else{ // hops, and a spin on the last beat
-    const b=beat%4;
-    if(b<3){const hf=Math.sin(Math.PI*f);P.hop=(b%2===0)?5*hf:1.5*hf;P.armL=1.5+.8*hf;P.armR=-(1.5+.8*hf);P.legL=P.legR=P.hop>1?1.2:0;}
-    else{P.spin=Math.cos(TAU*f);P.armL=1.3;P.armR=-1.3;P.head=0;}
-  }
-  return P;
-}
-let pose=targetPose(0,false);
-function drawCat(beat,frac,dancing,blink){
-  const T=targetPose(dancing?beat+frac:performance.now()/1000,dancing);
-  for(const k in T){const fast=(k==='spin'||k==='hop')?.6:.32;pose[k]+=(T[k]-pose[k])*fast;}
-  const p=pose,cx=20,ground=35;
-  l.clearRect(0,0,L.width,L.height);l.save();l.scale(2,2);
-  // shadow (shrinks while hopping)
-  const sw=14*(1-p.hop*.07);l.fillStyle='#00000066';l.fillRect(r2(cx+p.x-sw/2),ground+.5,r2(sw),1);
-  // whole-body spin: squash the x axis around the centre
-  l.translate(cx+p.x,0);l.scale(Math.abs(p.spin)<.35?.35*Math.sign(p.spin||1):p.spin,1);l.translate(-(cx+p.x),0);
-  const hipY=r2(32-p.hop+p.y*.5), bx=r2(cx+p.x);
-  part(IMG.leg,0,0,bx-5,r2(hipY-1-p.legL+p.y*.5));
-  part(IMG.leg,0,0,bx+1,r2(hipY-1-p.legR+p.y*.5));
-  l.save();l.translate(bx,hipY);l.rotate(p.lean);l.scale(p.sx,p.sy);
-  part(IMG.tail,1.5,6,5.5,-1.5,p.tail);
-  l.drawImage(IMG.torso,-6,-5);
-  // arms go behind the head when low, in front of it when raised
-  const armL=()=>part(IMG.arm,1.5,.5,-6.5,-4,p.armL), armR=()=>part(IMG.arm,1.5,.5,6.5,-4,p.armR);
-  const upL=Math.abs(p.armL)>1.2, upR=Math.abs(p.armR)>1.2;
-  if(!upL)armL(); if(!upR)armR();
-  const head=(dancing&&danceBeats>=4)?IMG.shades:(blink?IMG.blink:IMG.head);
-  part(head,8,10,0,-3.5,p.head);
-  if(upL)armL(); if(upR)armR();
-  l.restore();l.restore();
-  c.clearRect(0,0,cv.width,cv.height);c.drawImage(L,0,0,cv.width,cv.height);
-}
+  <!-- NOTES -->
+  <section id="notes" class="reveal">
+    <div class="wrap">
+      <p class="label">// 02 — latest notes</p>
+      <h2>Study log.</h2>
+      <p class="sub">Short, practical notes from each study session — commands, mistakes, and what actually clicked.</p>
+      <div class="notes">
+        <a class="note" href="/sql/ep00-story-of-sql/">
+          <div class="meta"><span>2026-11-16</span><span>10 min</span></div>
+          <h3>A Short Story of SQL</h3>
+          <p>A boring-titled paper, a word game, a startup that beat IBM, and a language declared dead that came back. A pixel study page with a cat.</p>
+          <div class="tags"><span class="tag">sql</span><span class="tag">history</span><span class="tag">postgresql</span></div>
+        </a>
+        <a class="note" href="#">
+          <div class="meta"><span>2026-10-19</span><span>5 min</span></div>
+          <h3>From zero to datawithkim.dev with Git &amp; GitHub Pages</h3>
+          <p>Buying a domain, DNS A records, the CNAME file, and why my DNS check failed at first.</p>
+          <div class="tags"><span class="tag">git</span><span class="tag">dns</span><span class="tag">github-pages</span></div>
+        </a>
+        <a class="note" href="#">
+          <div class="meta"><span>2026-10-13</span><span>7 min</span></div>
+          <h3>Linux Journey — The Shell</h3>
+          <p>Navigating the file system, pwd, cd, ls flags, and file operations without fear.</p>
+          <div class="tags"><span class="tag">linux</span><span class="tag">bash</span></div>
+        </a>
+        <div class="note soon">
+          <div class="meta"><span>coming soon</span><span>—</span></div>
+          <h3>Next up: Bash scripting</h3>
+          <p>Variables, loops and my first automation script.</p>
+          <div class="tags"><span class="tag">bash</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-/* ===== floor, stars, card-suit confetti ===== */
-const floor=document.getElementById('floor');for(let i=0;i<10;i++){const d=document.createElement('div');d.className='tile';floor.appendChild(d);}
-const tiles=[...floor.children],TC=['#ff5fa2','#3de1ff','#ffd23f','#9dff5c','#8a5cff'];
-const bg=document.getElementById('bg'),b=bg.getContext('2d'),fx=document.getElementById('fx'),f=fx.getContext('2d');let stars=[];
-function resize(){[bg,fx].forEach(k=>{k.width=innerWidth;k.height=innerHeight;});
-  stars=Array.from({length:70},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,s:Math.random()<.2?4:2,t:Math.random()*6}));}
-addEventListener('resize',resize);resize();
-let parts=[];const SUITS=['♠','♥','♦','♣'],SC=['#ffffff','#ff5fa2','#ff5fa2','#ffffff'];
-function burst(n=50){for(let i=0;i<n;i++){const k=i%4;parts.push({x:Math.random()*innerWidth,y:-20-Math.random()*200,vy:2+Math.random()*3,
-  vx:(Math.random()-.5)*1.5,s:[16,20,24][i%3],ch:SUITS[k],col:i%7===0?'#ffd23f':SC[k]});}}
+  <!-- ROADMAP -->
+  <section id="roadmap" class="reveal">
+    <div class="wrap">
+      <p class="label">// 03 — roadmap</p>
+      <h2>Where I am on the path.</h2>
+      <p class="sub">My data engineering roadmap, updated as I go.</p>
+      <div class="roadmap">
+        <div class="step done"><span class="ic">✓</span><span class="name">Linux &amp; the shell</span><div class="bar"><span data-w="100"></span></div></div>
+        <div class="step doing"><span class="ic">◐</span><span class="name">SQL (advanced)</span><div class="bar"><span data-w="70"></span></div></div>
+        <div class="step doing"><span class="ic">◐</span><span class="name">Bash scripting</span><div class="bar"><span data-w="45"></span></div></div>
+        <div class="step doing"><span class="ic">◐</span><span class="name">Python for data</span><div class="bar"><span data-w="60"></span></div></div>
+        <div class="step doing"><span class="ic">◐</span><span class="name">Git &amp; CI/CD</span><div class="bar"><span data-w="35"></span></div></div>
+        <div class="step todo"><span class="ic">○</span><span class="name">Docker</span><div class="bar"><span data-w="10"></span></div></div>
+        <div class="step todo"><span class="ic">○</span><span class="name">Orchestration (Airflow, n8n)</span><div class="bar"><span data-w="5"></span></div></div>
+        <div class="step todo"><span class="ic">○</span><span class="name">Cloud data platforms</span><div class="bar"><span data-w="15"></span></div></div>
+      </div>
+    </div>
+  </section>
 
-/* ===== status line ===== */
-const srcEl=document.getElementById('source');
-const audio=new Audio();let haveSong=false; // (no local-file option)
+  <!-- PROJECTS -->
+  <section id="projects" class="reveal">
+    <div class="wrap">
+      <p class="label">// 04 — projects</p>
+      <h2>Things I've built.</h2>
+      <p class="sub">Real pipelines, dashboards and experiments.</p>
+      <div class="projects">
+        <a class="project" href="/sql/" style="color:inherit">
+          <div class="kind">study series · sql</div>
+          <h3>SQL Quest</h3>
+          <p>An 18-episode, cozy-pixel SQL study series in public: from my first SELECT to building a SQL data warehouse. Labs, diagrams, quizzes and a cat.</p>
+          <div class="tags"><span class="tag">postgresql</span><span class="tag">sql</span><span class="tag">learning-in-public</span></div>
+        </a>
+        <div class="project">
+          <div class="kind">meta · pipeline</div>
+          <h3>datawithkim.dev</h3>
+          <p>This site: a Notion → Markdown → GitHub Pages publishing pipeline, with an RSS feed for downstream automations.</p>
+          <div class="tags"><span class="tag">git</span><span class="tag">notion-api</span><span class="tag">github-actions</span></div>
+        </div>
+        <div class="project">
+          <div class="kind">business intelligence</div>
+          <h3>Multi-company sales reporting</h3>
+          <p>A consolidated Power BI model replacing legacy reports with one source of truth for sales across several companies.</p>
+          <div class="tags"><span class="tag">power-bi</span><span class="tag">dax</span><span class="tag">sql</span></div>
+        </div>
+        <div class="project">
+          <div class="kind">data engineering</div>
+          <h3>ERP ETL pipelines</h3>
+          <p>Pipelines integrating ERP data across sites, feeding an international inventory dashboard.</p>
+          <div class="tags"><span class="tag">etl</span><span class="tag">sql-server</span></div>
+        </div>
+        <div class="project">
+          <div class="kind">study project</div>
+          <h3>n8n automation lab</h3>
+          <p>Self-hosted n8n with Docker, consuming my RSS feed to experiment with sharing workflows.</p>
+          <div class="tags"><span class="tag">n8n</span><span class="tag">docker</span><span class="tag">rss</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-/* ===== source 2: Spotify embed player ===== */
-let sp=null,spReady=false,spFailed=false,spPos=0,spAt=0,spPaused=true;
-window.onSpotifyIframeApiReady=(IFrameAPI)=>{
-  IFrameAPI.createController(document.getElementById('sp'),{uri:SPOTIFY_URI,width:'100%',height:152},(ctrl)=>{
-    sp=ctrl;
-    ctrl.addListener('ready',()=>{spReady=true;updateUI();tryAutoplay();});
-    // fires about once per second: { isPaused, isBuffering, duration, position } in ms
-    ctrl.addListener('playback_update',e=>{const d=e.data||{};
-      spPos=(d.position||0)/1000;spAt=performance.now();
-      const paused=!!d.isPaused||!!d.isBuffering;
-      if(source()==='sp'&&paused!==spPaused){spPaused=paused;setDancing(!paused);}
-      spPaused=paused;});
-  });
-};
-(function(){const s=document.createElement('script');s.src='https://open.spotify.com/embed/iframe-api/v1';s.async=true;
-  s.onerror=()=>{spFailed=true;updateUI();};document.body.appendChild(s);})();
-setTimeout(()=>{if(!spReady){spFailed=true;updateUI();}},12000);
+  <!-- CONTACT -->
+  <section id="contact" class="reveal">
+    <div class="wrap">
+      <div class="contact">
+        <p class="label">// 05 — contact</p>
+        <h2>Let's talk data.</h2>
+        <p>Learning something similar, hiring, or just curious? I'd love to hear from you.</p>
+        <div class="btns">
+          <a class="btn primary" href="mailto:you@example.com">$ send --email</a>
+          <a class="btn" href="https://github.com/dottienguyen23" target="_blank" rel="noopener">GitHub</a>
+          <a class="btn" href="https://www.linkedin.com/in/YOUR-LINKEDIN" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
-/* ===== source 3: built-in original beat (fallback) ===== */
-let ctx=null,master,noise,timer=null,step=0,nextT=0,startT=0;
-const NOTE=m=>440*Math.pow(2,(m-69)/12);
-const LEAD=[69,null,null,69,null,72,null,74,76,null,74,null,72,null,69,null,67,null,null,67,null,69,null,72,74,null,72,null,69,null,null,null,
-            69,null,null,69,null,72,null,74,76,null,79,null,76,null,74,null,72,null,74,null,76,null,74,72,69,null,null,null,null,null,null,null];
-const ROOT=[45,41,48,43];
-function tone(type,fq,t,d,v){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=fq;
-  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(1e-4,t+d);o.connect(g).connect(master);o.start(t);o.stop(t+d+.02);}
-function kick(t){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(40,t+.12);
-  g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(1e-3,t+.18);o.connect(g).connect(master);o.start(t);o.stop(t+.2);}
-function nz(t,ft,fq,v,d){const s=ctx.createBufferSource();s.buffer=noise;const fl=ctx.createBiquadFilter();fl.type=ft;fl.frequency.value=fq;
-  const g=ctx.createGain();g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(1e-3,t+d);s.connect(fl).connect(g).connect(master);s.start(t);s.stop(t+d+.01);}
-function sched(){const st=60/BPM/4;
-  while(nextT<ctx.currentTime+.12){const i=step%64,bar=i>>4,s=i%16;
-    if(LEAD[i])tone('square',NOTE(LEAD[i]),nextT,st*1.6,.07);
-    if(s%2===0)tone('sawtooth',NOTE(ROOT[bar]+(s%4===2?12:0)),nextT,st*1.2,.12);
-    if(s%4===0)kick(nextT);
-    if(s===4||s===12)nz(nextT,'bandpass',1800,.35,.15);
-    nz(nextT,'highpass',7000,s%2?.04:.09,.05);nextT+=st;step++;}}
-function startBeat(){if(!ctx){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.5;master.connect(ctx.destination);
-  noise=ctx.createBuffer(1,ctx.sampleRate*.2,ctx.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
-  ctx.resume();step=0;nextT=ctx.currentTime+.05;startT=nextT;timer=setInterval(sched,25);setDancing(true);}
-function stopBeat(){clearInterval(timer);timer=null;setDancing(false);}
+  <footer>
+    <div class="wrap">
+      <span>© <span id="yr">2026</span> Kim Nguyen</span>
+      <span class="mono">git push origin main · served by GitHub Pages</span>
+    </div>
+  </footer>
 
-/* ===== controls ===== */
-let dancing=false,danceBeats=0,phase=0;const btn=document.getElementById('play'),box=document.getElementById('playerBox');
-function source(){return haveSong?'file':(spReady&&!spFailed?'sp':'beat');}
-function updateUI(){
-  const s=source();
-  box.classList.toggle('hidden',s!=='sp'&&!(!spFailed&&!haveSong));
-  srcEl.textContent= s==='sp'?'♫ Press play — the cat follows the song'
-    : (spFailed?'Spotify unavailable here · built-in beat':'Loading Spotify…');
-}
-function setDancing(on){if(on&&!dancing){burst(80);danceBeats=0;}dancing=on;btn.textContent=on?'■ STOP':'▶ PARTY';}
-function stopAll(){audio.pause();if(sp&&spReady)try{sp.pause();}catch(e){}stopBeat();}
-btn.addEventListener('click',()=>{
-  if(dancing){stopAll();return;}
-  const s=source();
-  if(s==='file'){audio.play().catch(()=>{});}
-  else if(s==='sp'){try{sp.resume();}catch(e){sp.togglePlay();}}
-  else{try{startBeat();}catch(e){setDancing(true);}}
-});
-const bpmIn=document.getElementById('bpm'),bpmv=document.getElementById('bpmv');
-function setBPM(v){BPM=v;bpmIn.value=v;bpmv.textContent=v;try{localStorage.setItem('cp_bpm_web',v);}catch(e){}}
-try{const sb=+localStorage.getItem('cp_bpm_web');if(sb)setBPM(sb);}catch(e){}
-bpmIn.addEventListener('input',()=>setBPM(+bpmIn.value));
-// TAP: 3+ taps set the tempo; every tap lines the cat's beat up with the music
-let taps=[];document.getElementById('tap').addEventListener('click',()=>{const n=performance.now();
-  taps=taps.filter(t=>n-t<3000);taps.push(n);
-  if(taps.length>=3)setBPM(Math.max(60,Math.min(180,Math.round(60000/((taps[taps.length-1]-taps[0])/(taps.length-1))))));
-  if(dancing){const bl=60/BPM;phase=rawTime()%bl;}
-});
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
 
-/* ===== start: autoplay if the browser allows it, otherwise one tap anywhere ===== */
-const gate=document.getElementById('gate');
-function hideGate(){gate.classList.add('off');}
-function tryAutoplay(){ // most browsers block sound before a tap; if it works, the gate disappears
-  if(source()==='sp'&&!dancing)try{sp.play();}catch(e){}
-  setTimeout(()=>{if(dancing)hideGate();},2500);
-}
-gate.addEventListener('click',()=>{
-  if(!haveSong&&!spReady&&!spFailed)return; // still loading Spotify: wait for it
-  hideGate();if(!dancing)btn.click();});
-const gateTitle=gate.querySelector('b');gateTitle.textContent='LOADING…';
-setInterval(()=>{if(haveSong||spReady||spFailed)gateTitle.textContent='▶ TAP TO PARTY';},200);
+    // Typing terminal
+    var lines = [
+      { t: 'cmd', s: 'whoami' },
+      { t: 'out', s: 'kim nguyen — data engineer in progress' },
+      { t: 'cmd', s: 'cat stack.txt' },
+      { t: 'hl',  s: 'sql · python · bash · power bi · git' },
+      { t: 'cmd', s: 'tail -n 3 learning.log' },
+      { t: 'out', s: '[ok] linux: the shell\n[ok] git + github pages + custom domain\n[..] bash scripting' },
+      { t: 'cmd', s: './publish.sh --to datawithkim.dev' },
+      { t: 'hl',  s: '✔ deployed. see you in the notes.' }
+    ];
+    var term = document.getElementById('term');
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ===== timing + render loop ===== */
-const t0=performance.now();
-function rawTime(){const s=source();
-  if(!dancing)return(performance.now()-t0)/1000;
-  if(s==='file')return audio.currentTime;
-  if(s==='sp')return spPos+(spPaused?0:(performance.now()-spAt)/1000);
-  return ctx?Math.max(0,ctx.currentTime-startT):0;}
-let lastBeat=-1;
-function frame(now){
-  const tt=Math.max(0,rawTime()-(dancing?phase:0)),bf=tt*BPM/60,beat=Math.floor(bf),frac=bf-beat;
-  if(dancing&&beat!==lastBeat){danceBeats++;lastBeat=beat;}
-  drawCat(beat,frac,dancing,!dancing&&((now/1000)%3.2)<0.15);
-  tiles.forEach((d,i)=>d.style.background=dancing?TC[(i+beat)%TC.length]:'#2b2150');
-  b.clearRect(0,0,bg.width,bg.height);
-  for(const s of stars){const on=dancing?((Math.floor(s.t)+beat)%3!==0):(Math.sin(now/600+s.t)>0);
-    b.fillStyle=on?(s.s>2?'#ffd23f':'#ffffffaa'):'#ffffff22';b.fillRect(Math.floor(s.x),Math.floor(s.y),s.s,s.s);}
-  f.clearRect(0,0,fx.width,fx.height);if(dancing&&Math.random()<.05)burst(2);
-  parts=parts.filter(p=>p.y<innerHeight+30);
-  for(const p of parts){p.y+=p.vy;p.x+=p.vx;f.font=`${p.s}px 'Press Start 2P',monospace`;f.fillStyle=p.col;
-    f.fillText(p.ch,Math.round(p.x/4)*4,Math.round(p.y/4)*4);}
-  requestAnimationFrame(frame);
-}
-updateUI();requestAnimationFrame(frame);setTimeout(()=>burst(40),300);
-</script>
+    function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+    if (reduce) {
+      term.innerHTML = lines.map(function (l) {
+        return l.t === 'cmd' ? '<span class="p">$ </span><span class="c">' + esc(l.s) + '</span>'
+             : '<span class="' + (l.t === 'hl' ? 'h' : 'o') + '">' + esc(l.s) + '</span>';
+      }).join('\n');
+    } else {
+      var html = '', i = 0;
+      function next() {
+        if (i >= lines.length) { term.innerHTML = html + '\n<span class="p">$ </span><span class="caret"></span>'; return; }
+        var l = lines[i++];
+        if (l.t === 'cmd') {
+          var j = 0, prefix = html + (html ? '\n' : '') + '<span class="p">$ </span>';
+          (function type() {
+            term.innerHTML = prefix + '<span class="c">' + esc(l.s.slice(0, j)) + '</span><span class="caret"></span>';
+            if (j++ < l.s.length) setTimeout(type, 38 + Math.random() * 40);
+            else { html = prefix + '<span class="c">' + esc(l.s) + '</span>'; setTimeout(next, 350); }
+          })();
+        } else {
+          html += '\n<span class="' + (l.t === 'hl' ? 'h' : 'o') + '">' + esc(l.s) + '</span>';
+          term.innerHTML = html;
+          setTimeout(next, 500);
+        }
+      }
+      setTimeout(next, 500);
+    }
+
+    // Reveal on scroll + fill roadmap bars
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        e.target.classList.add('in');
+        e.target.querySelectorAll('.bar span').forEach(function (b) { b.style.width = b.dataset.w + '%'; });
+        io.unobserve(e.target);
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+  </script>
 </body>
 </html>
