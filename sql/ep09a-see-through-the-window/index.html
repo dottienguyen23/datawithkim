@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ep 09a · See Through the Window · SQL Quest</title>
+  <meta name="description" content="SQL Quest episode 09a: window functions vs GROUP BY, the OVER clause, PARTITION BY, ORDER BY, frames and the four window rules, with real lab output and mistakes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=VT323&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/pixel-study.css?v=2">
+  <script src="/assets/pixel-study.js?v=2" defer></script>
+</head>
+<body data-ep="ep09a">
+
+  <nav>
+    <div class="wide">
+      <a class="logo" href="/">datawithkim<b>.dev</b></a>
+      <div class="nav-right">
+        <span class="xp" title="Levels you marked as cleared">★ <span id="xp">0/5</span><span class="long"> cleared</span></span>
+        <a href="/sql/">SQL Quest</a>
+        <a class="hide-sm" href="/#notes">← notes</a>
+      </div>
+    </div>
+    <div class="track" aria-hidden="true"></div>
+  </nav>
+
+  <header class="wide hero">
+    <div>
+      <div class="chip">SQL Quest · episode 09a · world 2 · window saga 1/4</div>
+      <h1>SEE THROUGH<br><span class="hl">THE WINDOW</span></h1>
+      <p class="lead">Keep every row, and still see the big picture. Window functions add totals, ranks and comparisons next to your data instead of squashing it.</p>
+      <div class="meta"><span>2026-11-16</span><span>·</span><span>15 min read</span><span>·</span><span class="t">#sql #window-functions #over #partition-by</span></div>
+    </div>
+    <div>
+      <div class="px scene-box"><div class="scene-slot"></div></div>
+      <p class="scene-cap">study cat on duty (asleep, as usual)</p>
+    </div>
+  </header>
+
+  <article class="read">
+
+    <section class="coldopen reveal">
+      <p>Monday, 9:02. A message from sales: <em>"Can you send me every order, with its product's total sales next to it? And the grand total too, so I can see each order's share."</em></p>
+      <p>Easy, I thought. <code>GROUP BY</code>. Five minutes later I had a red error, then a query that ran but gave the wrong numbers. This episode is how I got out of that hole.</p>
+      <p class="big-idea">GROUP BY summarizes and changes the grain. A window function enriches and keeps it.</p>
+    </section>
+
+    <section class="chapter reveal" id="ch1" style="--c: var(--mint)">
+      <div class="ch-head"><span class="ch-num">level 01</span><span class="ch-year">the problem</span></div>
+      <h2>Why GROUP BY couldn't do it</h2>
+      <p>The lab table is <code>Sales.Orders</code>: 10 orders, 4 products, 380 in total sales. Product 101 has four orders (10, 20, 90, 20), so its total is 140.</p>
+      <div class="px lab">
+        <span class="k">// lab · attempt 1: details + GROUP BY</span>
+        <pre class="sql"><span class="kw">SELECT</span> OrderID, OrderDate, ProductID, <span class="fn">SUM</span>(Sales) <span class="kw">AS</span> TotalSales
+<span class="kw">FROM</span> Sales.Orders
+<span class="kw">GROUP</span> <span class="kw">BY</span> ProductID;</pre>
+        <pre class="out err">Msg 8120, Level 16, State 1, Line 4
+Column 'Sales.Orders.OrderID' is invalid in the select list because it is not
+contained in either an aggregate function or the GROUP BY clause.</pre>
+        <p class="note">After grouping, one product row stands for many orders. SQL can't pick which OrderID to show.</p>
+      </div>
+      <div class="px lab">
+        <span class="k">// lab · attempt 2: put the details in GROUP BY too</span>
+        <pre class="sql"><span class="kw">SELECT</span> OrderID, OrderDate, ProductID, <span class="fn">SUM</span>(Sales) <span class="kw">AS</span> TotalSales
+<span class="kw">FROM</span> Sales.Orders
+<span class="kw">GROUP</span> <span class="kw">BY</span> OrderID, OrderDate, ProductID;</pre>
+        <pre class="out">OrderID  ProductID  TotalSales
+1        101        10      &lt;- product 101 should be 140
+3        101        20      &lt;- different "total" for the same product?</pre>
+        <p class="note">No error, wrong answer. OrderID is unique, so every order became its own group and SUM of one value is that value. The grain never changed.</p>
+      </div>
+      <p>That's the real limit: <code>GROUP BY</code> uses <strong>one grain for the whole query</strong>. My task needed two at once: rows at order level, total at product level.</p>
+      <figure class="px fig reveal"><div class="fig-scroll"><svg viewBox="0 0 720 412" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four order rows. GROUP BY product returns two rows and loses the id. A window SUM partitioned by product returns all four rows with the product total next to each one."><defs><marker id="a9-m" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#9ed8c3"/></marker></defs><defs><marker id="a9-p" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#f6c58f"/></marker></defs><text x="20" y="26" class="h2" text-anchor="start">orders · 4 rows</text><path d="M24 40 H250 V44 H254 V192 H250 V196 H24 V192 H20 V44 H24 Z" fill="#1e1a2e" stroke="#a99fbf" stroke-width="3"/><text x="30" y="62" class="h" text-anchor="start">id</text><text x="76" y="62" class="h" text-anchor="start">product</text><text x="180" y="62" class="h" text-anchor="start">sales</text><line x1="20" y1="72" x2="254" y2="72" stroke="#4a4068" stroke-width="2"/><rect x="23" y="74" width="228" height="28" fill="rgba(158,216,195,.13)"/><text x="30" y="95" class="n" text-anchor="start">1</text><text x="76" y="95" class="n" text-anchor="start">Caps</text><text x="180" y="95" class="n" text-anchor="start">10</text><rect x="23" y="104" width="228" height="28" fill="rgba(158,216,195,.13)"/><text x="30" y="125" class="n" text-anchor="start">2</text><text x="76" y="125" class="n" text-anchor="start">Caps</text><text x="180" y="125" class="n" text-anchor="start">30</text><rect x="23" y="134" width="228" height="28" fill="rgba(246,197,143,.13)"/><text x="30" y="155" class="n" text-anchor="start">3</text><text x="76" y="155" class="n" text-anchor="start">Gloves</text><text x="180" y="155" class="n" text-anchor="start">5</text><rect x="23" y="164" width="228" height="28" fill="rgba(246,197,143,.13)"/><text x="30" y="185" class="n" text-anchor="start">4</text><text x="76" y="185" class="n" text-anchor="start">Gloves</text><text x="180" y="185" class="n" text-anchor="start">20</text><text x="330" y="26" class="h2" text-anchor="start">GROUP BY product</text><path d="M334 40 H510 V44 H514 V132 H510 V136 H334 V132 H330 V44 H334 Z" fill="#1e1a2e" stroke="#f6c58f" stroke-width="3"/><text x="340" y="62" class="h" text-anchor="start">product</text><text x="450" y="62" class="h" text-anchor="start">total</text><line x1="330" y1="72" x2="514" y2="72" stroke="#4a4068" stroke-width="2"/><rect x="333" y="74" width="178" height="28" fill="rgba(158,216,195,.13)"/><text x="340" y="95" class="n" text-anchor="start">Caps</text><text x="450" y="95" class="n" text-anchor="start">40</text><rect x="333" y="104" width="178" height="28" fill="rgba(246,197,143,.13)"/><text x="340" y="125" class="n" text-anchor="start">Gloves</text><text x="450" y="125" class="n" text-anchor="start">25</text><text x="330" y="160" class="hl" text-anchor="start">4 rows → 2 · id is gone</text><text x="330" y="206" class="h2" text-anchor="start">window · PARTITION BY product</text><path d="M334 218 H634 V222 H638 V370 H634 V374 H334 V370 H330 V222 H334 Z" fill="#1e1a2e" stroke="#9ed8c3" stroke-width="3"/><text x="340" y="240" class="h" text-anchor="start">id</text><text x="386" y="240" class="h" text-anchor="start">product</text><text x="490" y="240" class="h" text-anchor="start">sales</text><text x="574" y="240" class="h" text-anchor="start">total</text><line x1="330" y1="250" x2="638" y2="250" stroke="#4a4068" stroke-width="2"/><rect x="333" y="252" width="302" height="28" fill="rgba(158,216,195,.13)"/><text x="340" y="273" class="n" text-anchor="start">1</text><text x="386" y="273" class="n" text-anchor="start">Caps</text><text x="490" y="273" class="n" text-anchor="start">10</text><text x="574" y="273" class="n" text-anchor="start">40</text><rect x="333" y="282" width="302" height="28" fill="rgba(158,216,195,.13)"/><text x="340" y="303" class="n" text-anchor="start">2</text><text x="386" y="303" class="n" text-anchor="start">Caps</text><text x="490" y="303" class="n" text-anchor="start">30</text><text x="574" y="303" class="n" text-anchor="start">40</text><rect x="333" y="312" width="302" height="28" fill="rgba(246,197,143,.13)"/><text x="340" y="333" class="n" text-anchor="start">3</text><text x="386" y="333" class="n" text-anchor="start">Gloves</text><text x="490" y="333" class="n" text-anchor="start">5</text><text x="574" y="333" class="n" text-anchor="start">25</text><rect x="333" y="342" width="302" height="28" fill="rgba(246,197,143,.13)"/><text x="340" y="363" class="n" text-anchor="start">4</text><text x="386" y="363" class="n" text-anchor="start">Gloves</text><text x="490" y="363" class="n" text-anchor="start">20</text><text x="574" y="363" class="n" text-anchor="start">25</text><text x="330" y="400" class="h" text-anchor="start">4 rows → 4 · every detail kept</text><path d="M258 90 H296 V95 H318" fill="none" stroke="#f6c58f" stroke-width="3" stroke-dasharray="6 5" class="flow" marker-end="url(#a9-p)"/><path d="M258 130 H296 V290 H318" fill="none" stroke="#9ed8c3" stroke-width="3" stroke-dasharray="6 5" class="flow" marker-end="url(#a9-m)"/></svg></div><figcaption>Same data, same SUM. GROUP BY squashes each group into one row (the id disappears). The window function writes the group total next to every row, so detail and total sit side by side.</figcaption></figure>
+      <p class="hook">So how do you get a total without losing the rows? →</p>
+      <div class="px save" style="--c: var(--mint)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">No error ≠ correct result. Ask "what does one row mean?" before and after every GROUP BY.</p>
+          <div class="terms"><button class="term" data-def="What one row represents in a table, also called the grain: one order, one product, one customer per month.">granularity</button><button class="term" data-def="Collapses rows that share the same values into one row per group, changing the grain of the result.">GROUP BY</button><button class="term" data-def="SQL Server error: a column in SELECT is neither in GROUP BY nor inside an aggregate function.">Msg 8120</button></div>
+          <label class="clear"><input type="checkbox" data-ch="1"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch2" style="--c: var(--sky)">
+      <div class="ch-head"><span class="ch-num">level 02</span><span class="ch-year">the syntax</span></div>
+      <h2>OVER: split, sort, crop</h2>
+      <p>A window function is a normal function plus <code>OVER (...)</code>. The word OVER is what tells SQL: keep the rows. Inside the parentheses you describe the <strong>window</strong>, the set of rows the function looks at for the current row.</p>
+      <pre class="sql"><span class="fn">AVG</span>(Sales)                        <span class="c">-- f(x): what to calculate</span>
+<span class="kw">OVER</span> (
+    <span class="kw">PARTITION</span> <span class="kw">BY</span> ProductID        <span class="c">-- split the rows into windows</span>
+    <span class="kw">ORDER</span> <span class="kw">BY</span> OrderDate            <span class="c">-- sort inside each window</span>
+    <span class="kw">ROWS</span> <span class="kw">UNBOUNDED</span> <span class="kw">PRECEDING</span>      <span class="c">-- crop a frame around the current row</span>
+)</pre>
+      <table class="std wrap"><tr><th>part</th><th>job</th><th>required?</th></tr><tr><td>PARTITION BY</td><td>split rows into groups; the calculation restarts in each one</td><td>optional (default: everything is one window)</td></tr><tr><td>ORDER BY</td><td>sort rows inside each window</td><td>required for rank and value functions</td></tr><tr><td>frame</td><td>which rows around the current row are used</td><td>optional, needs ORDER BY</td></tr></table>
+      <div class="px lab">
+        <span class="k">// lab · the three-level report</span>
+        <pre class="sql"><span class="kw">SELECT</span> OrderID, ProductID, OrderStatus, Sales,
+       <span class="fn">SUM</span>(Sales) <span class="kw">OVER</span> ()                                    <span class="kw">AS</span> TotalSales,
+       <span class="fn">SUM</span>(Sales) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> ProductID)              <span class="kw">AS</span> SalesByProduct,
+       <span class="fn">SUM</span>(Sales) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> ProductID, OrderStatus) <span class="kw">AS</span> SalesByProductStatus
+<span class="kw">FROM</span> Sales.Orders
+<span class="kw">ORDER</span> <span class="kw">BY</span> OrderID;</pre>
+        <pre class="out">OrderID ProductID OrderStatus Sales TotalSales SalesByProduct SalesByProductStatus
+1       101       Delivered   10    380        140            30
+2       102       Shipped     15    380        105            75
+3       101       Delivered   20    380        140            30
+4       105       Shipped     60    380        60             60
+5       104       Delivered   25    380        75             75
+6       104       Delivered   50    380        75             75
+7       102       Delivered   30    380        105            30
+8       101       Shipped     90    380        140            110
+9       101       Shipped     20    380        140            110
+10      102       Shipped     60    380        105            75</pre>
+        <p class="note">Checks I ran: 140 + 105 + 75 + 60 = 380 · 101: 30 + 110 = 140 · still 10 rows. Four granularities in one query, the thing GROUP BY can't do.</p>
+      </div>
+      <p>Two things that surprised me:</p>
+      <p><strong>Same value ≠ same window.</strong> 30 shows up for 101-Delivered and 102-Delivered. Different windows, same total by coincidence. Always read the partition columns.</p>
+      <p><strong>The output order is a side effect.</strong> Without the final <code>ORDER BY OrderID</code>, SQL Server returned rows grouped by product (product 102 came out as 10, 2, 7) because it sorted internally to compute the partitions. If order matters, say so with an outer <code>ORDER BY</code>.</p>
+      <p class="hook">And what happens when I add ORDER BY inside OVER? The total turns into something else →</p>
+      <div class="px save" style="--c: var(--sky)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">OVER keeps the rows. PARTITION BY says "for each". Several windows can live in one SELECT.</p>
+          <div class="terms"><button class="term" data-def="Turns a function into a window function and defines the window it runs on. OVER () means the whole result set.">OVER</button><button class="term" data-def="Splits rows into windows inside OVER. Unlike GROUP BY, rows are not collapsed.">PARTITION BY</button><button class="term" data-def="The set of rows a window function looks at for the current row.">window</button></div>
+          <label class="clear"><input type="checkbox" data-ch="2"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch3" style="--c: var(--lav)">
+      <div class="ch-head"><span class="ch-num">level 03</span><span class="ch-year">frames</span></div>
+      <h2>The frame slides with you</h2>
+      <p>Add <code>ORDER BY</code> inside OVER and the window gets a direction. Now a <strong>frame</strong> can crop it: "from the first row to me", "the two rows before me", "me and the next one".</p>
+      <figure class="px fig reveal"><div class="fig-scroll"><svg viewBox="0 0 720 296" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Six months of sales. For the current row April, the running frame covers January to April and sums to 65, the 2-preceding frame covers February to April and sums to 45, and the whole window sums to 175."><text x="40" y="30" class="h2" text-anchor="start">ORDER BY month · current row = Apr</text><path d="M44 50 H216 V54 H220 V258 H216 V262 H44 V258 H40 V54 H44 Z" fill="#1e1a2e" stroke="#a99fbf" stroke-width="3"/><text x="54" y="77" class="n" text-anchor="start">Jan</text><text x="160" y="77" class="n" text-anchor="start">20</text><text x="54" y="111" class="n" text-anchor="start">Feb</text><text x="160" y="111" class="n" text-anchor="start">10</text><text x="54" y="145" class="n" text-anchor="start">Mar</text><text x="160" y="145" class="n" text-anchor="start">30</text><rect x="43" y="156" width="174" height="32" fill="rgba(242,167,184,.22)"/><text x="54" y="179" class="n" text-anchor="start">Apr</text><text x="160" y="179" class="n" text-anchor="start">5</text><text x="54" y="213" class="n" text-anchor="start">Jun</text><text x="160" y="213" class="n" text-anchor="start">70</text><text x="54" y="247" class="n" text-anchor="start">Jul</text><text x="160" y="247" class="n" text-anchor="start">40</text><path d="M236 57 H248 V185 H236" fill="none" stroke="#9ed8c3" stroke-width="4"/><text x="258" y="117" class="h" text-anchor="start" fill="#9ed8c3" style="fill:#9ed8c3">65 running</text><text x="258" y="139" class="s" text-anchor="start">UNBOUNDED PRECEDING</text><path d="M442 91 H454 V185 H442" fill="none" stroke="#f6c58f" stroke-width="4"/><text x="464" y="134" class="h" text-anchor="start" fill="#f6c58f" style="fill:#f6c58f">45 rolling</text><text x="464" y="156" class="s" text-anchor="start">2 PRECEDING</text><path d="M582 57 H594 V253 H582" fill="none" stroke="#c9b6f2" stroke-width="4"/><text x="604" y="151" class="h" text-anchor="start" fill="#c9b6f2" style="fill:#c9b6f2">175 total</text><text x="604" y="173" class="s" text-anchor="start">whole window</text><text x="40" y="286" class="s" text-anchor="start">rolling frame at Jul = 5 + 70 + 40 = 115</text></svg></div><figcaption>One current row, three frames. The frame decides which rows the function sees for <em>this</em> row, then it slides down with the current row.</figcaption></figure>
+      <table class="std num wrap"><tr><th>frame</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>Jun</th><th>Jul</th></tr><tr><td>UNBOUNDED PRECEDING AND CURRENT ROW</td><td>20</td><td>30</td><td>60</td><td>65</td><td>135</td><td>175</td></tr><tr><td>CURRENT ROW AND UNBOUNDED FOLLOWING</td><td>175</td><td>155</td><td>145</td><td>115</td><td>110</td><td>40</td></tr><tr><td>1 PRECEDING AND CURRENT ROW</td><td>20</td><td>30</td><td>40</td><td>35</td><td>75</td><td>110</td></tr><tr><td>CURRENT ROW AND 2 FOLLOWING</td><td>60</td><td>45</td><td>105</td><td>115</td><td>110</td><td>40</td></tr><tr><td>1 PRECEDING AND 1 FOLLOWING</td><td>30</td><td>60</td><td>45</td><td>105</td><td>115</td><td>110</td></tr><tr><td>UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</td><td>175</td><td>175</td><td>175</td><td>175</td><td>175</td><td>175</td></tr></table>
+      <p>Rule of thumb: an <code>UNBOUNDED</code> end is fixed, a <code>CURRENT ROW</code> or <code>N</code> end moves. Near the edges a frame just gets smaller, it never crosses into another partition.</p>
+      <div class="px lab">
+        <span class="k">// lab · the short form only works backwards</span>
+        <pre class="sql"><span class="fn">SUM</span>(Sales) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> OrderStatus <span class="kw">ORDER</span> <span class="kw">BY</span> OrderDate
+                 <span class="kw">ROWS</span> <span class="kw">UNBOUNDED</span> <span class="kw">FOLLOWING</span>)</pre>
+        <pre class="out err">Msg 102, Level 15, State 1, Line 7
+Incorrect syntax near 'FOLLOWING'.</pre>
+        <p class="note">The short form <code>ROWS x</code> means <code>BETWEEN x AND CURRENT ROW</code>. With FOLLOWING the start would come after the end. Fix: write the full <code>BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING</code>. (The course slide used <code>ROWS 2 FOLLOWING</code> as its example: same error.)</p>
+      </div>
+      <div class="px cmp">
+        <span class="k">// trap · the default frame</span>
+        <p><code>SUM(Sales) OVER (ORDER BY x)</code> with no frame quietly uses <code>RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code>: a running total, not a total. And it's <code>RANGE</code>, not <code>ROWS</code>: rows with the same sort value are peers and get the same result.</p>
+        <table class="std num wrap"><tr><th>Sales (sorted)</th><th>default RANGE</th><th>explicit ROWS</th></tr><tr><td>10</td><td>10</td><td>10</td></tr><tr><td>15</td><td>25</td><td>25</td></tr><tr><td>20</td><td><span class="bad">65</span></td><td>45</td></tr><tr><td>20</td><td><span class="bad">65</span></td><td>65</td></tr><tr><td>…</td><td>…</td><td>…</td></tr><tr><td>60</td><td><span class="bad">290</span></td><td>230</td></tr><tr><td>60</td><td><span class="bad">290</span></td><td>290</td></tr><tr><td>90</td><td>380</td><td>380</td></tr></table>
+        <p>For a real row-by-row running total: write <code>ROWS</code> explicitly and add a tiebreaker to the sort.</p>
+      </div>
+      <p class="hook">Frames are flexible. But there are four rules you can't bend →</p>
+      <div class="px save" style="--c: var(--lav)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">ORDER BY inside OVER always means a frame. If you just wanted sorted output, use the outer ORDER BY.</p>
+          <div class="terms"><button class="term" data-def="The subset of the window used for the current row, set with ROWS or RANGE BETWEEN start AND end.">frame</button><button class="term" data-def="The first row of the partition.">UNBOUNDED PRECEDING</button><button class="term" data-def="ROWS counts physical rows. RANGE treats rows with the same ORDER BY value as one group of peers.">RANGE vs ROWS</button></div>
+          <label class="clear"><input type="checkbox" data-ch="3"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch4" style="--c: var(--pink)">
+      <div class="ch-head"><span class="ch-num">level 04</span><span class="ch-year">rules</span></div>
+      <h2>Four rules, four error messages</h2>
+      <p>All four rules come from one fact: window functions run <strong>late</strong>.</p>
+      <pre class="sql"><span class="kw">FROM</span> → <span class="kw">WHERE</span> → <span class="kw">GROUP</span> <span class="kw">BY</span> → <span class="kw">HAVING</span> → window functions → <span class="kw">SELECT</span> → <span class="kw">ORDER</span> <span class="kw">BY</span></pre>
+      <table class="std wrap"><tr><th>rule</th><th>what I hit</th><th>fix</th></tr><tr><td>1 · only in SELECT and ORDER BY</td><td>Msg 4108: windowed functions can only appear in the SELECT or ORDER BY clauses</td><td>compute in a subquery or CTE, filter outside</td></tr><tr><td>2 · no nesting</td><td>Msg 4109: window function inside another window or aggregate</td><td>one layer per CTE step</td></tr><tr><td>3 · WHERE runs first</td><td>no error: totals change (135 / 245 became 60 / 185)</td><td>filter in the outer query if you need full-data totals</td></tr><tr><td>4 · with GROUP BY, use grouped columns or aggregates</td><td>Msg 8120 for ORDER BY Sales after GROUP BY CustomerID</td><td>RANK() OVER (ORDER BY SUM(Sales) DESC)</td></tr></table>
+      <div class="px lab">
+        <span class="k">// lab · rule 1 workaround and rule 4 pattern</span>
+        <pre class="sql"><span class="c">-- keep rows whose status total is above 100</span>
+<span class="kw">SELECT</span> *
+<span class="kw">FROM</span> (
+    <span class="kw">SELECT</span> OrderID, OrderStatus, Sales,
+           <span class="fn">SUM</span>(Sales) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> OrderStatus) <span class="kw">AS</span> TotalSales
+    <span class="kw">FROM</span> Sales.Orders
+) t                                <span class="c">-- the derived table needs an alias</span>
+<span class="kw">WHERE</span> TotalSales &gt; 100;
+
+<span class="c">-- aggregate first, then rank</span>
+<span class="kw">SELECT</span> CustomerID,
+       <span class="fn">SUM</span>(Sales) <span class="kw">AS</span> TotalSales,
+       <span class="fn">RANK</span>() <span class="kw">OVER</span> (<span class="kw">ORDER</span> <span class="kw">BY</span> <span class="fn">SUM</span>(Sales) <span class="kw">DESC</span>) <span class="kw">AS</span> RankCustomers
+<span class="kw">FROM</span> Sales.Orders
+<span class="kw">GROUP</span> <span class="kw">BY</span> CustomerID;</pre>
+        <pre class="out">CustomerID  TotalSales  RankCustomers
+3           125         1
+1           110         2
+4           90          3
+2           55          4</pre>
+        <p class="note">Ranking by <code>CustomerID</code> instead also ran without errors, and put customer 4 first. Valid syntax, wrong business answer.</p>
+      </div>
+      <div class="px cmp">
+        <span class="k">// compare · SQL Server (course) vs PostgreSQL (this series)</span>
+        <table class="std wrap"><tr><th></th><th>SQL Server</th><th>PostgreSQL</th></tr><tr><td>window in WHERE</td><td>Msg 4108</td><td>ERROR: window functions are not allowed in WHERE</td></tr><tr><td>RANGE with offsets</td><td>only UNBOUNDED / CURRENT ROW</td><td>RANGE BETWEEN INTERVAL '7 days' PRECEDING …</td></tr><tr><td>reuse a window</td><td>—</td><td>named windows: WINDOW w AS (...)</td></tr><tr><td>extra frame mode</td><td>—</td><td>GROUPS (counts peer groups)</td></tr></table>
+      </div>
+      <p class="hook">Last level: where all this shows up at work →</p>
+      <div class="px save" style="--c: var(--pink)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">Window functions run after WHERE and GROUP BY, so filter on them one level up.</p>
+          <div class="terms"><button class="term" data-def="A subquery in FROM. SQL Server requires an alias for it, like ) t.">derived table</button><button class="term" data-def="WITH name AS (...): a named step you can query like a table. Easier to read than nested subqueries.">CTE</button><button class="term" data-def="The order SQL evaluates clauses: FROM, WHERE, GROUP BY, HAVING, window, SELECT, ORDER BY.">execution order</button></div>
+          <label class="clear"><input type="checkbox" data-ch="4"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter reveal" id="ch5" style="--c: var(--peach)">
+      <div class="ch-head"><span class="ch-num">level 05</span><span class="ch-year">DE angle</span></div>
+      <h2>In real data engineering</h2>
+      <p><strong>Report tables with several levels.</strong> A sales export for Power BI often needs order line + product subtotal + business-line total + grand total on one row. Before window functions this meant one GROUP BY subquery per level and a join back for each. Now it's one pass over the table.</p>
+      <p><strong>Grain discipline.</strong> The first question for any fact table (like a <code>fact_SalesLine</code>) is "what does one row mean?" Window results repeat on every row of the window, so never <code>SUM</code> a window-total column again: 4 rows × 140 = 560, not 140. That's the double-counting bug that makes dashboard totals look too big.</p>
+      <p><strong>Decide where the filter goes.</strong> "Show product 101 with its share of all sales" needs the window over all rows and the filter outside. Put the filter in WHERE and the share is computed on the wrong denominator. Many "the % in my report doesn't match" tickets start here.</p>
+      <div class="px save" style="--c: var(--peach)">
+        <div>
+          <div class="tag">💾 save point · the cat says</div>
+          <p class="tip">Detail + subtotal + total in one row, one pass: that is the everyday job of a window function.</p>
+          <div class="terms"><button class="term" data-def="A table of events with measures (sales, quantity) at a declared grain, at the center of a star schema.">fact table</button><button class="term" data-def="Summing a value that is already repeated on several rows, which inflates totals.">double counting</button></div>
+          <label class="clear"><input type="checkbox" data-ch="5"><span>cleared</span></label>
+        </div>
+      </div>
+    </section>
+
+    <div class="px epilogue">
+      <div class="tag">// episode cleared</div>
+      <p>I started with a red error and ended with four levels of totals in one query. Next episode: what each aggregate function does inside a window, and the NULL traps hiding in them.</p>
+      <p class="next">next → ep09b · sum it up</p>
+    </div>
+
+    <h2 class="section-title" id="glossary" style="--c: var(--lav)">Glossary</h2>
+    <p class="section-sub">All the new words from this episode.</p>
+    <dl class="gloss" id="gloss"></dl>
+
+    <h2 class="section-title" id="quiz" style="--c: var(--peach)">Boss level: quick quiz</h2>
+    <p class="section-sub">No pressure, the cat isn't grading.</p>
+    <div class="px quiz" id="quizbox"></div>
+
+    <section class="sources" id="sources">
+      <h3>// sources</h3>
+      <ol>
+        <li><a href="https://www.postgresql.org/docs/current/tutorial-window.html" target="_blank" rel="noopener">PostgreSQL tutorial: Window Functions</a></li>
+        <li><a href="https://www.postgresql.org/docs/current/sql-expressions.html#SYNTAX-WINDOW-FUNCTIONS" target="_blank" rel="noopener">PostgreSQL docs: window function calls (frames, RANGE, GROUPS)</a></li>
+        <li><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql" target="_blank" rel="noopener">Microsoft Learn: SELECT - OVER clause (Transact-SQL)</a></li>
+        <li>Lab data: the SalesDB sample database from the course I followed, run in SQL Server Management Studio.</li>
+      </ol>
+    </section>
+
+    <div class="ep-nav"><span class="px">← ep08 · Queries inside queries (soon)</span><a class="px" href="/sql/ep09b-sum-it-up/">ep09b · Sum It Up →</a></div>
+  </article>
+
+  <footer>
+    <div class="wide">
+      <span>© <span id="yr">2026</span> Kim Nguyen · SQL Quest</span>
+      <span>made with tea, rain &amp; a sleepy cat</span>
+    </div>
+  </footer>
+
+  <script>
+    window.QUIZ = [
+      {
+            "q": "You add OrderID to SELECT next to SUM(Sales) ... GROUP BY ProductID. What happens?",
+            "o": [
+                  "SQL picks the first OrderID",
+                  "Error: OrderID is not in GROUP BY or an aggregate",
+                  "OrderID shows as NULL"
+            ],
+            "a": 1,
+            "w": "Every SELECT column must be grouped or aggregated. SQL Server reports Msg 8120."
+      },
+      {
+            "q": "Which query keeps all 10 order rows and shows each product total?",
+            "o": [
+                  "SUM(Sales) ... GROUP BY ProductID",
+                  "SUM(Sales) OVER (PARTITION BY ProductID)",
+                  "SUM(Sales) OVER ()"
+            ],
+            "a": 1,
+            "w": "PARTITION BY ProductID makes one window per product and the rows are not collapsed. OVER () would give 380 on every row."
+      },
+      {
+            "q": "SUM(Sales) OVER (PARTITION BY ProductID ORDER BY OrderDate). For product 101 (10, 20, 90, 20) you get:",
+            "o": [
+                  "140, 140, 140, 140",
+                  "10, 30, 120, 140",
+                  "10, 20, 90, 20"
+            ],
+            "a": 1,
+            "w": "ORDER BY switches on the default frame (start to current row), so it becomes a running total."
+      },
+      {
+            "q": "Why does ROWS 2 FOLLOWING fail?",
+            "o": [
+                  "FOLLOWING needs RANGE",
+                  "The short form means BETWEEN 2 FOLLOWING AND CURRENT ROW, so start comes after end",
+                  "You can only look 1 row ahead"
+            ],
+            "a": 1,
+            "w": "The short form always ends at CURRENT ROW. Use BETWEEN CURRENT ROW AND 2 FOLLOWING."
+      },
+      {
+            "q": "How do you keep only rows where a window total is above 100?",
+            "o": [
+                  "WHERE SUM(Sales) OVER (...) > 100",
+                  "HAVING SUM(Sales) OVER (...) > 100",
+                  "Compute it in a subquery or CTE, then filter outside"
+            ],
+            "a": 2,
+            "w": "Window functions run after WHERE and HAVING, so they can only be filtered one level up."
+      },
+      {
+            "q": "The default frame when you write ORDER BY without a frame is:",
+            "o": [
+                  "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
+                  "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
+                  "the whole partition"
+            ],
+            "a": 1,
+            "w": "It is RANGE, so rows with the same sort value get the same result. Write ROWS explicitly for a row-by-row running total."
+      }
+];
+  </script>
+</body>
+</html>

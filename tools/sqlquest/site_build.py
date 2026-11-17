@@ -7,7 +7,7 @@ from figs import FIGS
 from episodes import WORLDS, all_eps
 
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
-ASSET_V = '1'
+ASSET_V = '2'
 
 def write(rel, text):
     p = os.path.join(ROOT, rel); os.makedirs(os.path.dirname(p), exist_ok=True)
@@ -151,7 +151,7 @@ for w in WORLDS:
 
 total_eps = len(order)
 hub = head('SQL Quest · learn SQL from zero to data engineer · Data with Kim',
-           "Kim's SQL study series: 18 episodes from your first SELECT to building a SQL data warehouse, with labs, diagrams, quizzes and a cat.") + f'''
+           f"Kim's SQL study series: {len(order)} episodes from your first SELECT to building a SQL data warehouse, with labs, diagrams, quizzes and a cat.") + f'''
 <body data-dock="on">
 
 {nav('SQL Quest')}

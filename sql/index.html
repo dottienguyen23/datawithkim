@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SQL Quest · learn SQL from zero to data engineer · Data with Kim</title>
-  <meta name="description" content="Kim&#x27;s SQL study series: 18 episodes from your first SELECT to building a SQL data warehouse, with labs, diagrams, quizzes and a cat.">
+  <meta name="description" content="Kim&#x27;s SQL study series: 21 episodes from your first SELECT to building a SQL data warehouse, with labs, diagrams, quizzes and a cat.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=VT323&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/pixel-study.css?v=1">
-  <script src="/assets/pixel-study.js?v=1" defer></script>
+  <link rel="stylesheet" href="/assets/pixel-study.css?v=2">
+  <script src="/assets/pixel-study.js?v=2" defer></script>
 </head>
 <body data-dock="on">
 
@@ -30,11 +30,11 @@
       <div class="chip">a study series by Kim · beginner → data engineer</div>
       <h1>SQL <span class="hl">Quest</span></h1>
       <p class="lead">I'm learning SQL in public, from my first <code>SELECT</code> to building a data warehouse. Every episode is one study session: a story, a hands-on lab, diagrams, a quiz, and a cat who sleeps through all of it.</p>
-      <div class="meta"><span>18 episodes</span><span>·</span><span>3 worlds</span><span>·</span><span class="t">PostgreSQL</span></div>
+      <div class="meta"><span>21 episodes</span><span>·</span><span>3 worlds</span><span>·</span><span class="t">PostgreSQL</span></div>
       <div class="px progress-big" id="progress">
         <div class="cat-slot" data-cls="cat"></div>
         <div class="bar-outer"><div class="bar-inner" id="pbar"></div></div>
-        <span class="lbl" id="plbl">0/18 episodes</span>
+        <span class="lbl" id="plbl">0/21 episodes</span>
       </div>
     </div>
     <div>
@@ -78,7 +78,10 @@
       <div class="eps">
         <div class="px ep soon" data-ep="ep07" style="--c: var(--lav)"><div class="num">ep 07<span class="st">soon</span></div><h3>What happens after Enter</h3><p>Parser → optimizer → executor, execution order, and reading your first EXPLAIN.</p><span class="src">↳ my SQL2 notes</span><span class="lab">lab: EXPLAIN five queries</span></div>
         <div class="px ep soon" data-ep="ep08" style="--c: var(--lav)"><div class="num">ep 08<span class="st">soon</span></div><h3>Queries inside queries</h3><p>Subqueries, CTEs, WITH RECURSIVE, and temp tables.</p><span class="lab">lab: build an org chart</span></div>
-        <div class="px ep soon" data-ep="ep09" style="--c: var(--lav)"><div class="num">ep 09<span class="st">soon</span></div><h3>Window functions</h3><p>ROW_NUMBER / RANK / DENSE_RANK, PARTITION BY, named windows, frames, LAG and LEAD.</p><span class="src">↳ my sql3 notes</span><span class="lab">lab: month-over-month sales</span></div>
+        <a class="px ep live" data-ep="ep09a" href="/sql/ep09a-see-through-the-window/" style="--c: var(--lav)"><div class="num">ep 09a<span class="st">play ▸</span></div><h3>Window Saga 1 · See Through the Window</h3><p>Keep every row, still see the big picture: OVER, PARTITION BY, ORDER BY, frames and the 4 window rules.</p><span class="src">↳ studied 16 Nov 2026</span><span class="lab">lab: the three-level report</span></a>
+        <a class="px ep live" data-ep="ep09b" href="/sql/ep09b-sum-it-up/" style="--c: var(--lav)"><div class="num">ep 09b<span class="st">play ▸</span></div><h3>Window Saga 2 · Sum It Up</h3><p>Totals that never forget the details: COUNT, SUM, AVG, MIN, MAX over windows, running and rolling totals.</p><span class="src">↳ studied 17 Nov 2026</span><span class="lab">lab: the data health check</span></a>
+        <div class="px ep soon" data-ep="ep09c" style="--c: var(--lav)"><div class="num">ep 09c<span class="st">soon</span></div><h3>Window Saga 3 · Stand on the Podium</h3><p>Who's #1, and what happens on a tie? ROW_NUMBER, RANK, DENSE_RANK, NTILE, CUME_DIST, PERCENT_RANK.</p><span class="lab">lab: keep the latest, crown the best</span></div>
+        <div class="px ep soon" data-ep="ep09d" style="--c: var(--lav)"><div class="num">ep 09d<span class="st">soon</span></div><h3>Window Saga 4 · Step Back, Step Ahead</h3><p>Compare today with yesterday: LAG, LEAD, FIRST_VALUE and LAST_VALUE.</p><span class="src">↳ my sql3 notes</span><span class="lab">lab: the price detective</span></div>
         <div class="px ep soon" data-ep="ep10" style="--c: var(--lav)"><div class="num">ep 10<span class="st">soon</span></div><h3>Code that lives in the DB</h3><p>Views, functions, stored procedures and triggers, and when not to use them.</p><span class="src">↳ my SQL2 notes</span><span class="lab">lab: an auto updated_at trigger</span></div>
         <div class="px ep soon" data-ep="ep11" style="--c: var(--lav)"><div class="num">ep 11<span class="st">soon</span></div><h3>Make it fast</h3><p>B-tree, composite, partial and GIN indexes, why an index is ignored, EXPLAIN ANALYZE.</p><span class="src">↳ my SQL_1 notes</span><span class="lab">lab: the 145× index, extended</span></div>
       </div>
@@ -133,8 +136,8 @@
           done++; c.classList.add('done'); var st = c.querySelector('.st'); if (st) st.textContent = 'cleared ✓';
         }
       });
-      document.getElementById('pbar').style.width = (done / 18 * 100) + '%';
-      document.getElementById('plbl').textContent = done + '/18 episodes';
+      document.getElementById('pbar').style.width = (done / 21 * 100) + '%';
+      document.getElementById('plbl').textContent = done + '/21 episodes';
     });
   </script>
 </body>
