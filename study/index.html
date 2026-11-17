@@ -139,6 +139,30 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .qrow{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
 .qrow .qt{flex:1;font-size:14px}
 .qrow .qt small{display:block;color:var(--ink-3)}
+.vibes{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.vibes button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
+.vibes button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.vrow{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:var(--ink-2)}
+.vrow input[type=range]{flex:1;accent-color:var(--accent)}
+.eq{display:inline-flex;gap:2px;align-items:flex-end;height:12px;margin-left:6px;vertical-align:-1px}
+.eq i{width:3px;background:currentColor;border-radius:1px;animation:eq 1s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}
+@keyframes eq{0%,100%{height:3px}50%{height:12px}}
+/* zen */
+#zen{position:fixed;inset:0;z-index:15;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center;color:#f4f1ea;
+  background:linear-gradient(130deg,#1d3b33,#2b2f4a,#3d2c3e,#1f3a40);background-size:400% 400%;animation:drift 40s ease infinite}
+#zen.open{display:flex}
+@keyframes drift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+#zen .ztime{font-family:"JetBrains Mono",monospace;font-size:clamp(64px,17vw,140px);font-weight:600;letter-spacing:-.03em;line-height:1}
+#zen .zphase{text-transform:uppercase;letter-spacing:.2em;font-size:13px;opacity:.7}
+#zen .zquote{max-width:620px;font-family:Fraunces,Georgia,serif;font-size:clamp(17px,2.4vw,22px);opacity:.88;line-height:1.45}
+#zen .zby{font-size:13px;opacity:.6;margin-top:6px;font-family:Inter,sans-serif}
+#zen .zbtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#zen .zbtns button{background:rgba(255,255,255,.12);color:#f4f1ea;border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:9px 18px;cursor:pointer}
+#zen .zbtns button:hover{background:rgba(255,255,255,.2)}
+#zen .breathe{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.55);animation:breathe 8s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.35}50%{transform:scale(2.6);opacity:.8}}
+@media (prefers-reduced-motion: reduce){#zen,#zen .breathe,.eq i{animation:none}}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:9px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30}
 .toast.show{opacity:1}
 .hidden{display:none!important}
@@ -205,6 +229,22 @@ table.tv td.n{text-align:right;font-variant-numeric:tabular-nums}
           <button class="btn small ghost" id="qNext" title="Show another quote">↻ Another</button>
           <button class="btn small ghost" id="qEdit">My quotes</button>
         </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0">Vibe <span id="vibeEq" class="eq hidden"><i></i><i></i><i></i></span></h2>
+          <button class="btn small" id="zenBtn" title="Hide everything except the timer">Zen mode</button>
+        </div>
+        <div class="vibes" id="vibes">
+          <button data-v="off" class="on">Off</button>
+          <button data-v="lofi">Lo-fi chords</button>
+          <button data-v="rain">Rain</button>
+          <button data-v="ocean">Ocean</button>
+          <button data-v="brown">Brown noise</button>
+          <button data-v="clock">Clock tick</button>
+        </div>
+        <div class="vrow"><span>Volume</span><input type="range" id="vibeVol" min="0" max="100" value="45" aria-label="Background sound volume"></div>
+        <label class="vrow" style="cursor:pointer"><input type="checkbox" id="vibeOnlyFocus" checked> Play only while the focus timer runs</label>
       </div>
       <div class="card">
         <div class="muted">Today</div>
@@ -333,6 +373,13 @@ table.tv td.n{text-align:right;font-variant-numeric:tabular-nums}
   </div>
 </div>
 
+<div id="zen" role="dialog" aria-modal="true" aria-label="Zen mode">
+  <div class="breathe" aria-hidden="true"></div>
+  <div class="zphase" id="zPhase">Focusing</div>
+  <div class="ztime" id="zTime">25:00</div>
+  <div><div class="zquote" id="zQuote"></div><div class="zby" id="zBy"></div></div>
+  <div class="zbtns"><button id="zStart">Pause</button><button id="zVibe">Sound: Off</button><button id="zExit">Exit zen</button></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -372,6 +419,7 @@ function renderQuote(){
   $("#qText").textContent = cur ? "“"+cur.text+"”" : "Add your own quotes to see them here.";
   $("#qBy").textContent = cur && cur.by ? "— "+cur.by : "";
   $("#qNext").disabled = q.length<2;
+  if(typeof renderZen==="function") renderZen();
 }
 function renderQuoteList(){
   const q=getQuotes();
@@ -500,7 +548,7 @@ function chime(){
   }catch(e){}
 }
 function start(){
-  try{ if(!audioCtx){ const AC=window.AudioContext||window.webkitAudioContext; if(AC) audioCtx=new AC(); } else if(audioCtx.state==="suspended") audioCtx.resume(); }catch(e){}
+  ensureCtx();
   if(T.running){ // pause
     T.remaining=Math.max(0,T.endsAt-Date.now()); T.running=false;
   } else {
@@ -513,7 +561,7 @@ function phaseDone(){
   T.running=false; T.remaining=0; saveTimer(); chime();
   if(T.mode==="focus"){
     T.completed=(T.completed||0)+1;
-    openSession({fromTimer:true, minutes:Math.round(T.total/60000)});
+    closeZen(); openSession({fromTimer:true, minutes:Math.round(T.total/60000)});
   } else {
     toast("Break's over — ready for the next focus block");
     setMode("focus");
@@ -550,9 +598,138 @@ function renderTimer(){
   $("#dcount").textContent=T.distractions||0;
   const every=settings.longEvery||4, done=(T.completed||0)%every;
   $("#cycle").innerHTML = Array.from({length:every},(_,i)=>'<i class="'+(i<done?"done":"")+'"></i>').join("");
+  if(typeof syncAmbience==="function") syncAmbience();
+  if(typeof renderZen==="function") renderZen();
   document.title = T.running ? txt+" · "+(T.mode==="focus"?"Focus":"Break") : "Study Focus";
 }
 setInterval(()=>{ if(T.running){ if(T.endsAt<=Date.now()) phaseDone(); renderTimer(); } }, 250);
+
+/* ---------------- ambience ---------------- */
+const V_KEY="study-focus-vibe";
+let vibe={sound:"off", vol:45, onlyFocus:true};
+try{ const o=JSON.parse(localStorage.getItem(V_KEY)||"null"); if(o) vibe=Object.assign(vibe,o); }catch(e){}
+const saveVibe=()=>{ try{ localStorage.setItem(V_KEY,JSON.stringify(vibe)); }catch(e){} };
+const VIBE_NAMES={off:"Off",lofi:"Lo-fi",rain:"Rain",ocean:"Ocean",brown:"Brown noise",clock:"Clock tick"};
+let amb=null; // {master, nodes:[], timers:[], kind}
+function ensureCtx(){
+  try{ if(!audioCtx){ const AC=window.AudioContext||window.webkitAudioContext; if(AC) audioCtx=new AC(); } else if(audioCtx.state==="suspended") audioCtx.resume(); }catch(e){}
+  return audioCtx;
+}
+function noiseBuffer(ctx,type){
+  const len=ctx.sampleRate*4, buf=ctx.createBuffer(1,len,ctx.sampleRate), d=buf.getChannelData(0);
+  let last=0,b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+  for(let i=0;i<len;i++){
+    const w=Math.random()*2-1;
+    if(type==="brown"){ last=(last+0.02*w)/1.02; d[i]=last*3.5; }
+    else if(type==="pink"){ b0=.99886*b0+w*.0555179;b1=.99332*b1+w*.0750759;b2=.969*b2+w*.153852;b3=.8665*b3+w*.3104856;b4=.55*b4+w*.5329522;b5=-.7616*b5-w*.016898; d[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.11; b6=w*.115926; }
+    else d[i]=w;
+  }
+  // crossfade loop edges
+  const f=2048; for(let i=0;i<f;i++){ const t=i/f; d[i]=d[i]*t+d[len-f+i]*(1-t); }
+  return buf;
+}
+function loopNoise(ctx,type){ const s=ctx.createBufferSource(); s.buffer=noiseBuffer(ctx,type); s.loop=true; return s; }
+function lfo(ctx,freq,depth,target,base){ const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=freq; g.gain.value=depth; o.connect(g); g.connect(target); target.value=base; o.start(); return o; }
+function buildAmbience(kind){
+  const ctx=audioCtx, master=ctx.createGain(); master.gain.value=0; master.connect(ctx.destination);
+  const a={kind, master, nodes:[], timers:[]};
+  const keep=n=>{ a.nodes.push(n); return n; };
+  if(kind==="rain"){
+    const n=keep(loopNoise(ctx,"pink")), hp=ctx.createBiquadFilter(), lp=ctx.createBiquadFilter(), g=ctx.createGain();
+    hp.type="highpass"; hp.frequency.value=500; lp.type="lowpass"; lp.frequency.value=6500; g.gain.value=0.9;
+    n.connect(hp); hp.connect(lp); lp.connect(g); g.connect(master); n.start();
+    keep(lfo(ctx,0.07,0.15,g.gain,0.85));
+    const rumble=keep(loopNoise(ctx,"brown")), rl=ctx.createBiquadFilter(), rg=ctx.createGain(); rl.type="lowpass"; rl.frequency.value=300; rg.gain.value=0.35;
+    rumble.connect(rl); rl.connect(rg); rg.connect(master); rumble.start();
+    a.timers.push(setInterval(()=>{ // droplets
+      const t=ctx.currentTime+Math.random()*0.2, o=ctx.createOscillator(), dg=ctx.createGain();
+      o.frequency.setValueAtTime(1800+Math.random()*2200,t); o.frequency.exponentialRampToValueAtTime(600,t+0.05);
+      dg.gain.setValueAtTime(0.0001,t); dg.gain.exponentialRampToValueAtTime(0.05,t+0.003); dg.gain.exponentialRampToValueAtTime(0.0001,t+0.06);
+      o.connect(dg); dg.connect(master); o.start(t); o.stop(t+0.07);
+    },140));
+  } else if(kind==="ocean"){
+    const n=keep(loopNoise(ctx,"brown")), lp=ctx.createBiquadFilter(), g=ctx.createGain();
+    lp.type="lowpass"; lp.Q.value=0.5; n.connect(lp); lp.connect(g); g.connect(master); n.start();
+    keep(lfo(ctx,0.09,0.45,g.gain,0.55)); keep(lfo(ctx,0.09,500,lp.frequency,900));
+    const hiss=keep(loopNoise(ctx,"pink")), hb=ctx.createBiquadFilter(), hg=ctx.createGain(); hb.type="bandpass"; hb.frequency.value=2500; hb.Q.value=0.6;
+    hiss.connect(hb); hb.connect(hg); hg.connect(master); hiss.start(); keep(lfo(ctx,0.09,0.08,hg.gain,0.08));
+  } else if(kind==="brown"){
+    const n=keep(loopNoise(ctx,"brown")), lp=ctx.createBiquadFilter(), g=ctx.createGain();
+    lp.type="lowpass"; lp.frequency.value=1100; g.gain.value=0.9; n.connect(lp); lp.connect(g); g.connect(master); n.start();
+  } else if(kind==="clock"){
+    let k=0;
+    a.timers.push(setInterval(()=>{
+      const t=ctx.currentTime+0.02, src=ctx.createBufferSource(), bp=ctx.createBiquadFilter(), g=ctx.createGain();
+      if(!a.click) a.click=noiseBuffer(ctx,"white");
+      src.buffer=a.click; bp.type="bandpass"; bp.frequency.value=(k++%2)?3200:2600; bp.Q.value=8;
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.9,t+0.002); g.gain.exponentialRampToValueAtTime(0.0001,t+0.035);
+      src.connect(bp); bp.connect(g); g.connect(master); src.start(t, Math.random()*3, 0.05);
+    },1000));
+  } else if(kind==="lofi"){
+    const lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=1300; lp.Q.value=0.7; lp.connect(master);
+    keep(lfo(ctx,0.05,250,lp.frequency,1300));
+    const crackle=keep(loopNoise(ctx,"pink")), cg=ctx.createGain(), chp=ctx.createBiquadFilter(); chp.type="highpass"; chp.frequency.value=1500; cg.gain.value=0.03;
+    crackle.connect(chp); chp.connect(cg); cg.connect(master); crackle.start();
+    const mtof=m=>440*Math.pow(2,(m-69)/12);
+    const chords=[[48,55,64,71],[45,52,60,67],[50,57,65,72],[43,50,59,65]]; // Cmaj7 Am7 Dm7 G7
+    const melody=[76,74,72,74, 72,69,72,67, 77,76,74,72, 71,74,72,null];
+    const beat=60/72, bar=beat*4; let next=ctx.currentTime+0.1, ci=0;
+    function note(m,t,dur,vol,type){
+      const o=ctx.createOscillator(), g=ctx.createGain(); o.type=type; o.frequency.value=mtof(m); o.detune.value=(Math.random()-.5)*12;
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.08); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.connect(g); g.connect(lp); o.start(t); o.stop(t+dur+0.05);
+    }
+    function kick(t){ const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.setValueAtTime(110,t); o.frequency.exponentialRampToValueAtTime(40,t+0.18); g.gain.setValueAtTime(0.35,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.25); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.3); }
+    function hat(t){ if(!a.click) a.click=noiseBuffer(ctx,"white"); const s2=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain(); s2.buffer=a.click; f.type="highpass"; f.frequency.value=7000; g.gain.setValueAtTime(0.05,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.05); s2.connect(f); f.connect(g); g.connect(master); s2.start(t,Math.random()*3,0.06); }
+    function schedule(){
+      while(next<ctx.currentTime+1.5){
+        const ch=chords[ci%4];
+        ch.forEach(m=>note(m,next,bar*0.98,0.05,"triangle"));
+        note(ch[0]-12,next,bar*0.9,0.09,"sine");
+        for(let b=0;b<4;b++){ const t=next+b*beat;
+          if(b===0||b===2) kick(t);
+          hat(t+beat/2+0.03);
+          const m=melody[(ci%4)*4+b]; if(m && Math.random()<0.8) note(m,t,beat*0.9,0.03,"sine");
+        }
+        next+=bar; ci++;
+      }
+    }
+    schedule(); a.timers.push(setInterval(schedule,400));
+  }
+  return a;
+}
+function stopAmbience(){
+  if(!amb) return; const a=amb; amb=null;
+  try{ const t=audioCtx.currentTime; a.master.gain.cancelScheduledValues(t); a.master.gain.setValueAtTime(a.master.gain.value,t); a.master.gain.linearRampToValueAtTime(0,t+0.6); }catch(e){}
+  a.timers.forEach(clearInterval);
+  setTimeout(()=>{ a.nodes.forEach(n=>{ try{ n.stop(); }catch(e){} }); try{ a.master.disconnect(); }catch(e){} },700);
+}
+function vibeTarget(){ return (vibe.vol/100)*0.5; }
+function syncAmbience(){
+  const want = vibe.sound!=="off" && (!vibe.onlyFocus || (T.running && T.mode==="focus"));
+  if(!want){ stopAmbience(); }
+  else if(audioCtx){
+    if(amb && amb.kind!==vibe.sound) stopAmbience();
+    if(!amb){ amb=buildAmbience(vibe.sound); const t=audioCtx.currentTime; amb.master.gain.setValueAtTime(0,t); amb.master.gain.linearRampToValueAtTime(vibeTarget(),t+1.5); }
+    else amb.master.gain.setTargetAtTime(vibeTarget(),audioCtx.currentTime,0.1);
+  }
+  $$("#vibes button").forEach(b=>b.classList.toggle("on",b.dataset.v===vibe.sound));
+  $("#vibeVol").value=vibe.vol; $("#vibeOnlyFocus").checked=vibe.onlyFocus;
+  $("#vibeEq").classList.toggle("hidden",!amb);
+  $("#zVibe").textContent="Sound: "+VIBE_NAMES[vibe.sound];
+}
+function setVibe(v){ ensureCtx(); vibe.sound=v; saveVibe(); syncAmbience();
+  if(v!=="off" && vibe.onlyFocus && !(T.running && T.mode==="focus")) toast(VIBE_NAMES[v]+" will play when you start focusing"); }
+
+/* ---------------- zen ---------------- */
+function renderZen(){
+  if(!$("#zen").classList.contains("open")) return;
+  $("#zTime").textContent=$("#time").textContent; $("#zPhase").textContent=$("#phase").textContent;
+  $("#zStart").textContent=$("#startBtn").textContent;
+  $("#zQuote").textContent=$("#qText").textContent; $("#zBy").textContent=$("#qBy").textContent;
+}
+function openZen(){ $("#zen").classList.add("open"); renderZen(); try{ document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){} }
+function closeZen(){ $("#zen").classList.remove("open"); try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} }
 
 /* ---------------- session dialog ---------------- */
 let editing=null, dRating=0, dlgCtx=null;
@@ -806,6 +983,13 @@ $("#copyCsv").addEventListener("click",async()=>{
 });
 
 $("#qNext").addEventListener("click",nextQuote);
+$("#vibes").addEventListener("click",e=>{ const b=e.target.closest("[data-v]"); if(b) setVibe(b.dataset.v); });
+$("#vibeVol").addEventListener("input",e=>{ vibe.vol=+e.target.value; saveVibe(); if(amb && audioCtx) amb.master.gain.setTargetAtTime(vibeTarget(),audioCtx.currentTime,0.05); });
+$("#vibeOnlyFocus").addEventListener("change",e=>{ ensureCtx(); vibe.onlyFocus=e.target.checked; saveVibe(); syncAmbience(); });
+$("#zenBtn").addEventListener("click",openZen);
+$("#zExit").addEventListener("click",closeZen);
+$("#zStart").addEventListener("click",start);
+$("#zVibe").addEventListener("click",()=>{ const order=["off","lofi","rain","ocean","brown","clock"]; setVibe(order[(order.indexOf(vibe.sound)+1)%order.length]); });
 $("#qEdit").addEventListener("click",()=>{ renderQuoteList(); openOverlay("#quoteDlg"); setTimeout(()=>$("#newQuote").focus(),50); });
 $("#quoteDone").addEventListener("click",()=>{ if($("#newQuote").value.trim()) $("#addQuote").click(); closeOverlay("#quoteDlg"); });
 $("#addQuote").addEventListener("click",()=>{
@@ -844,6 +1028,8 @@ $("#subjList").addEventListener("click",async e=>{
   store.saveSettings(); renderSubjects(); renderAll();
 });
 document.addEventListener("keydown",e=>{
+  if(e.key==="Escape" && $("#zen").classList.contains("open")){ closeZen(); return; }
+  if(e.code==="Space" && $("#zen").classList.contains("open") && !$(".overlay.open")){ e.preventDefault(); start(); return; }
   if(e.key==="Escape"){ if($("#sessDlg").classList.contains("open")) cancelSession(); else $$(".overlay.open").forEach(o=>o.classList.remove("open")); }
   if(e.code==="Space" && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName) && !$(".overlay.open") && !$("#tab-focus").classList.contains("hidden")){ e.preventDefault(); start(); }
 });
