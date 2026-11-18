@@ -1,0 +1,182 @@
+{
+  "name": "Road to 30 · 2 · Weekly recap draft",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "67f7b473-0a0a-4331-afb3-4f382f55f984",
+      "name": "Every Sunday 20:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/41c735e40e2581deacfbe66f8f77766f/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { property: 'Date', date: { past_week: {} } }, page_size: 100 }) }}"
+      },
+      "id": "d3cd1b45-d7e0-4ca4-a286-fe8576b891e1",
+      "name": "Sessions this week",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/41c735e40e258189aa40dae4f51c9fcc/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ page_size: 100 }) }}"
+      },
+      "id": "8c3db2cc-5d9b-4f2d-a91c-30eb33fa1a46",
+      "name": "All goals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the weekly Road to 30 recap from Notion and save it as a Threads draft\nconst BIRTHDAY_30 = 'YYYY-MM-DD';   // set this: the day you turn 30\nconst START = 'YYYY-MM-DD';         // set this: one year before that day\nconst POSTS_DB = '41c735e40e258186845fd5323669362c';\n\nconst sessions = $('Sessions this week').first().json.results || [];\nconst goals = $('All goals').first().json.results || [];\nconst plain = x => (x?.rich_text || x?.title || []).map(t => t.plain_text).join('');\nconst fmt = m => { m = Math.round(m); const h = Math.floor(m / 60), r = m % 60; return h ? (r ? `${h}h ${r}m` : `${h}h`) : `${r}m`; };\n\nlet total = 0; const bySubj = {}; const days = new Set();\nfor (const s of sessions) {\n  const p = s.properties; const min = p['Minutes']?.number || 0; total += min;\n  const subj = p['Subject']?.select?.name || 'Other'; bySubj[subj] = (bySubj[subj] || 0) + min;\n  const d = p['Date']?.date?.start; if (d) days.add(d.slice(0, 10));\n}\nlet stepsDone = 0, stepsTotal = 0;\nfor (const g of goals) { stepsDone += g.properties['Steps done']?.number || 0; stepsTotal += g.properties['Steps total']?.number || 0; }\n\nconst now = new Date();\nconst week = Math.floor((now - new Date(START + 'T00:00:00')) / (7 * 864e5)) + 1;\nconst daysLeft = Math.ceil((new Date(BIRTHDAY_30 + 'T00:00:00') - now) / 864e5);\nconst top = Object.entries(bySubj).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ${fmt(v)}`).join(' · ');\n\nconst text = total\n  ? `Road to 30 · week ${week}\\n\\n📚 ${fmt(total)} of study this week, on ${days.size} days\\n${top}\\n✅ ${stepsDone}/${stepsTotal} goal steps done so far\\n⏳ ${daysLeft} days to 30. Still growing.\\n\\n#RoadTo30 #DataEngineering`\n  : `Road to 30 · week ${week}\\n\\nA quiet week for study. Resetting and starting again on Monday.\\n⏳ ${daysLeft} days to 30.\\n\\n#RoadTo30`;\n\nreturn [{ json: { page: {\n  parent: { database_id: POSTS_DB },\n  properties: {\n    'Post': { title: [{ text: { content: `Weekly recap · week ${week}` } }] },\n    'Text': { rich_text: [{ text: { content: text.slice(0, 500) } }] },\n    'Status': { select: { name: 'Draft' } },\n    'Type': { select: { name: 'Weekly recap' } },\n  },\n} } }];\n"
+      },
+      "id": "acfa778b-c769-40b7-bf33-780df31801e4",
+      "name": "Write the recap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.page) }}"
+      },
+      "id": "46addacd-ff48-4500-bb89-41c0293edb93",
+      "name": "Save as Threads draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every Sunday 20:00": {
+      "main": [
+        [
+          {
+            "node": "Sessions this week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sessions this week": {
+      "main": [
+        [
+          {
+            "node": "All goals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All goals": {
+      "main": [
+        [
+          {
+            "node": "Write the recap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write the recap": {
+      "main": [
+        [
+          {
+            "node": "Save as Threads draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Rome"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

@@ -1,0 +1,16 @@
+# Cloudflare Tunnel for the Road to 30 n8n workflows.
+# Only n8n's webhook URLs are reachable from the internet; the n8n editor stays private on the laptop.
+#
+# Put this file in ~/.cloudflared/config.yml (macOS/Linux) or %USERPROFILE%\.cloudflared\config.yml (Windows)
+# and replace <TUNNEL-ID> with the id printed by `cloudflared tunnel create road-to-30`.
+
+tunnel: road-to-30
+credentials-file: ~/.cloudflared/<TUNNEL-ID>.json
+
+ingress:
+  # Production webhooks only (e.g. https://n8n.datawithkim.dev/webhook/study-focus)
+  - hostname: n8n.datawithkim.dev
+    path: ^/webhook/
+    service: http://localhost:5678
+  # Everything else, including the n8n editor, is refused
+  - service: http_status:404

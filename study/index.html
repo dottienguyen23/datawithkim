@@ -55,7 +55,7 @@ nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink)
 .btn.danger{color:var(--danger)}
 .btn:disabled{opacity:.45;cursor:default}
 label.f{display:block;font-size:12px;color:var(--ink-2);margin:10px 0 4px;font-weight:500}
-input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+input[type=text],input[type=password],input[type=number],input[type=date],input[type=time],select,textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
 textarea{min-height:70px;resize:vertical}
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
@@ -290,6 +290,22 @@ table.tv td.n{text-align:right;font-variant-numeric:tabular-nums}
           <div><label class="f" for="setGoal">Daily goal (min)</label><input type="number" id="setGoal" min="10" max="900" step="5"></div>
         </div>
       </div>
+      <div class="card" id="syncCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <h2 style="margin:0">Notion sync</h2><span class="pill" id="syncState">Off</span>
+        </div>
+        <div class="muted" style="margin-top:4px">Sends every session and goal change to your n8n, which saves it in Notion.</div>
+        <label class="f" for="syncUrl">n8n webhook URL</label>
+        <input type="text" id="syncUrl" placeholder="https://n8n.your-domain/webhook/study-focus" autocomplete="off" spellcheck="false">
+        <label class="f" for="syncKey">Key</label>
+        <input type="password" id="syncKey" placeholder="The same key as in your n8n workflow" autocomplete="off">
+        <div class="controls" style="justify-content:flex-start;margin-top:12px">
+          <button class="btn small" id="syncTest">Test</button>
+          <button class="btn small" id="syncNow">Sync now</button>
+          <button class="btn small" id="syncAll" title="Send all sessions and goals already in the app">Send everything</button>
+          <button class="btn small" id="syncPull">Get goals from Notion</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -353,6 +369,7 @@ table.tv td.n{text-align:right;font-variant-numeric:tabular-nums}
     </div>
     <div class="toolbar" style="margin:0">
       <div class="areafilter" id="r30Areas" style="flex:1"></div>
+      <button class="btn small" id="r30Pull" title="Load your goals from Notion">Get goals from Notion</button>
       <button class="btn small" id="r30Add">+ Add goal</button>
     </div>
     <div class="goals" id="r30Goals"></div>
@@ -601,12 +618,14 @@ function upsertSession(s, oldStart){
   months[mk]=(months[mk]||[]).filter(x=>x.id!==s.id);
   months[mk].push(s);
   store.saveMonth(mk);
+  enqueue({type:"session", data:sessionPayload(s)});
   renderAll();
 }
 function deleteSession(s){
   const mk=monthKey(s.start);
   months[mk]=(months[mk]||[]).filter(x=>x.id!==s.id);
   store.saveMonth(mk); renderAll();
+  enqueue({type:"session_delete", data:{id:s.id}});
 }
 
 /* ---------------- timer ---------------- */
@@ -690,6 +709,54 @@ function renderTimer(){
   document.title = T.running ? txt+" · "+(T.mode==="focus"?"Focus":"Break") : "Study Focus";
 }
 setInterval(()=>{ if(T.running){ if(T.endsAt<=Date.now()) phaseDone(); renderTimer(); } }, 250);
+
+/* ---------------- Notion sync via n8n ---------------- */
+const SYNC_KEY="study-focus-sync", OUTBOX_KEY="study-focus-outbox";
+let sync={url:"",key:""}, outbox=[], flushing=false, lastSyncErr="";
+try{ sync=Object.assign(sync, JSON.parse(localStorage.getItem(SYNC_KEY)||"{}")); outbox=JSON.parse(localStorage.getItem(OUTBOX_KEY)||"[]")||[]; }catch(e){}
+const syncOn = () => !!(sync.url && sync.key);
+function saveOutbox(){ try{ localStorage.setItem(OUTBOX_KEY, JSON.stringify(outbox)); }catch(e){} }
+function localISO(ms){ const d=new Date(ms), off=-d.getTimezoneOffset(), sg=off>=0?"+":"-", a=Math.abs(off);
+  return dayKey(ms)+"T"+pad(d.getHours())+":"+pad(d.getMinutes())+":00"+sg+pad(Math.floor(a/60))+":"+pad(a%60); }
+function sessionPayload(s){ return {id:s.id, startLocal:localISO(s.start), min:s.min, subject:subjName(s.subject), task:s.task||"", note:s.note||"", rating:s.rating||0, distractions:s.distractions||0, kind:s.kind||"manual"}; }
+function goalPayload(g, newlyDone){ return {id:g.id, title:g.title, area:g.area, due:g.due||"", hours:g.hours||0, subject: g.subject&&subjById(g.subject)? subjName(g.subject):"", steps:g.steps.map(x=>({text:x.text,done:!!x.done})), newlyDone:newlyDone||[]}; }
+function enqueue(evt){
+  if(!syncOn()) return;
+  const id=evt.data && evt.data.id;
+  const i=outbox.findIndex(e=>e.data && e.data.id===id && e.type.split("_")[0]===evt.type.split("_")[0]);
+  if(i>=0){ if(evt.type==="goal" && outbox[i].type==="goal") evt.data.newlyDone=[...new Set((outbox[i].data.newlyDone||[]).concat(evt.data.newlyDone||[]))]; outbox.splice(i,1); }
+  outbox.push(evt); saveOutbox(); renderSync(); setTimeout(flushOutbox,300);
+}
+async function postN8n(body){
+  const res=await fetch(sync.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify(Object.assign({key:sync.key},body))});
+  let data=null; try{ data=await res.json(); }catch(e){}
+  if(!res.ok) throw new Error((data&&data.message)||("n8n answered "+res.status));
+  return data||{};
+}
+async function flushOutbox(){
+  if(flushing || !syncOn() || !outbox.length) { renderSync(); return; }
+  flushing=true; lastSyncErr=""; renderSync();
+  try{ while(outbox.length){ await postN8n(outbox[0]); outbox.shift(); saveOutbox(); renderSync(); } }
+  catch(e){ lastSyncErr = (e && e.message && !/fetch|network/i.test(e.message)) ? e.message : "Can't reach n8n"; }
+  flushing=false; renderSync();
+}
+function renderSync(){
+  const el=$("#syncState"); if(!el) return;
+  let t="Off", warn=false;
+  if(syncOn()){ if(flushing) t="Syncing…"; else if(lastSyncErr){ t=lastSyncErr+(outbox.length?" · "+outbox.length+" waiting":""); warn=true; } else t= outbox.length? outbox.length+" waiting" : "Up to date"; }
+  el.textContent=t; el.classList.toggle("warn",warn);
+  if(document.activeElement!==$("#syncUrl")) $("#syncUrl").value=sync.url;
+  if(document.activeElement!==$("#syncKey")) $("#syncKey").value=sync.key;
+}
+function diffGoals(prev, next){
+  const pm={}; prev.forEach(g=>pm[g.id]=g);
+  next.forEach(g=>{ const o=pm[g.id]; if(o && JSON.stringify(o)===JSON.stringify(g)) return;
+    const newly = o ? g.steps.filter(x=>x.done && !(o.steps.find(y=>y.id===x.id)||{}).done).map(x=>x.text) : [];
+    enqueue({type:"goal", data:goalPayload(g,newly)}); });
+  prev.forEach(g=>{ if(!next.find(x=>x.id===g.id)) enqueue({type:"goal_delete", data:{id:g.id}}); });
+}
+setInterval(()=>{ if(outbox.length) flushOutbox(); }, 60000);
+window.addEventListener("online", flushOutbox);
 
 /* ---------------- ambience ---------------- */
 const V_KEY="study-focus-vibe";
@@ -1064,7 +1131,7 @@ function openGoal(g){
   $("#gDelete").classList.toggle("hidden",!g);
   openOverlay("#goalDlg"); setTimeout(()=>$("#gName").focus(),50);
 }
-function saveGoals(list){ settings.goals=list; store.saveSettings(); renderR30(); }
+function saveGoals(list, noSync){ const prev=JSON.parse(JSON.stringify(getGoals())); settings.goals=list; if(!noSync) diffGoals(prev,list); store.saveSettings(); renderR30(); }
 function renderSettings(){
   const set=(id,v)=>{ const el=$(id); if(document.activeElement!==el) el.value=v; };
   set("#setFocus",settings.focusMin); set("#setShort",settings.shortMin); set("#setLong",settings.longMin); set("#setEvery",settings.longEvery); set("#setGoal",settings.goalMin);
@@ -1128,6 +1195,26 @@ $("#copyCsv").addEventListener("click",async()=>{
 });
 
 $("#qNext").addEventListener("click",nextQuote);
+const saveSyncCfg=()=>{ sync.url=$("#syncUrl").value.trim(); sync.key=$("#syncKey").value.trim(); try{ localStorage.setItem(SYNC_KEY,JSON.stringify(sync)); }catch(e){} renderSync(); };
+$("#syncUrl").addEventListener("change",saveSyncCfg); $("#syncKey").addEventListener("change",saveSyncCfg);
+$("#syncTest").addEventListener("click",async()=>{ saveSyncCfg(); if(!syncOn()){ toast("Add the n8n URL and key first"); return; }
+  try{ const r=await postN8n({type:"ping"}); lastSyncErr=""; toast(r.message||"n8n is connected"); flushOutbox(); }
+  catch(e){ lastSyncErr="Can't reach n8n"; toast(e && e.message && !/fetch|network/i.test(e.message) ? e.message : "Can't reach n8n — is it running and the tunnel on?"); renderSync(); } });
+$("#syncNow").addEventListener("click",()=>{ saveSyncCfg(); flushOutbox(); });
+$("#syncAll").addEventListener("click",async()=>{ saveSyncCfg(); if(!syncOn()){ toast("Add the n8n URL and key first"); return; }
+  const ss=allSessions(), gs=getGoals();
+  if(!(await confirmBox("Send "+ss.length+" sessions and "+gs.length+" goals to Notion? Rows that already exist are updated, not duplicated."))) return;
+  ss.slice().reverse().forEach(s=>outbox.push({type:"session",data:sessionPayload(s)})); gs.forEach(g=>outbox.push({type:"goal",data:goalPayload(g,[])}));
+  saveOutbox(); flushOutbox(); });
+$("#syncPull").addEventListener("click",async()=>{ saveSyncCfg(); if(!syncOn()){ toast("Add the n8n URL and key first"); return; }
+  try{
+    const r=await postN8n({type:"pull_goals"}); const list=(r.goals||[]);
+    if(!list.length){ toast("No goals found in Notion"); return; }
+    if(!(await confirmBox("Replace the goals in this app with the "+list.length+" goals from Notion?"))) return;
+    const byName={}; settings.subjects.forEach(x=>byName[x.name.toLowerCase()]=x.id);
+    const goals=list.map(g=>({id:String(g.id), title:g.title||"Goal", area:AREAS.includes(g.area)?g.area:"Learning", due:g.due||"", hours:g.hours||0, subject: byName[(g.subjectName||"").toLowerCase()]||"", steps:(g.steps||[]).map((x,i)=>({id:String(g.id)+"-"+i, text:x.text, done:!!x.done}))}));
+    saveGoals(goals,true); toast("Loaded "+goals.length+" goals from Notion");
+  }catch(e){ toast(e && e.message && !/fetch|network/i.test(e.message) ? e.message : "Can't reach n8n"); } });
 $("#r30Areas").addEventListener("click",e=>{ const b=e.target.closest("[data-a]"); if(!b) return; r30Area=b.dataset.a; renderR30(); });
 $("#r30Add").addEventListener("click",()=>openGoal(null));
 $("#r30Goals").addEventListener("click",e=>{ const b=e.target.closest("[data-gedit]"); if(!b) return; const g=getGoals().find(x=>x.id===b.dataset.gedit); if(g) openGoal(g); });
@@ -1210,6 +1297,9 @@ document.addEventListener("keydown",e=>{
 });
 
 /* ---------------- boot ---------------- */
+$("#r30Pull").addEventListener("click",()=>{ if(!syncOn()){ toast("Set up Notion sync on the Focus page first"); return; } $("#syncPull").click(); });
+setTimeout(()=>{ if(window.claude){ $("#syncCard").classList.add("hidden"); $("#r30Pull").classList.add("hidden"); } },0);
+renderSync(); setTimeout(flushOutbox,1500);
 loadTimer();
 if(!T.running && T.remaining===T.total) T.total=T.remaining=modeMin(T.mode)*60000;
 renderAll();

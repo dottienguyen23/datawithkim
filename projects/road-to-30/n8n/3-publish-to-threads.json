@@ -1,0 +1,256 @@
+{
+  "name": "Road to 30 · 3 · Publish approved posts to Threads",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "34c8efa5-7234-4a4c-8823-cead8a62f321",
+      "name": "Every 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/41c735e40e258186845fd5323669362c/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { property: 'Status', select: { equals: 'Approved' } }, page_size: 5 }) }}"
+      },
+      "id": "500e4b91-c066-4009-b432-dc7ea5f3559b",
+      "name": "Find approved posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per approved post, with its text ready for Threads\nconst out = [];\nfor (const r of ($input.first().json.results || [])) {\n  const text = (r.properties['Text']?.rich_text || []).map(t => t.plain_text).join('').trim();\n  if (text) out.push({ json: { pageId: r.id, text: text.slice(0, 500) } });\n}\nreturn out;\n"
+      },
+      "id": "f3ecbc56-d009-4ece-92bd-cb6af563cf03",
+      "name": "One item per post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.threads.net/v1.0/me/threads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "TEXT"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3469672a-0663-4439-a2aa-3db11c225f61",
+      "name": "Create Threads post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.threads.net/v1.0/me/threads_publish",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d48b91da-04d2-42df-8819-485e8726e5c7",
+      "name": "Publish it",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.threads.net/v1.0/{{ $json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "permalink"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4ebd772-bb32-4e1c-ad2b-c65a1aa1dec3",
+      "name": "Get post link",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $('One item per post').item.json.pageId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ properties: { 'Status': { select: { name: 'Posted' } }, 'Posted at': { date: { start: new Date().toISOString() } }, 'Threads link': { url: $json.permalink || null } } }) }}"
+      },
+      "id": "417879a1-98fc-4e35-bc0f-975dc3df5447",
+      "name": "Mark as Posted",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every 15 minutes": {
+      "main": [
+        [
+          {
+            "node": "Find approved posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find approved posts": {
+      "main": [
+        [
+          {
+            "node": "One item per post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per post": {
+      "main": [
+        [
+          {
+            "node": "Create Threads post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Threads post": {
+      "main": [
+        [
+          {
+            "node": "Publish it",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish it": {
+      "main": [
+        [
+          {
+            "node": "Get post link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get post link": {
+      "main": [
+        [
+          {
+            "node": "Mark as Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Rome"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
