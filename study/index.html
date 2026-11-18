@@ -163,6 +163,27 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 #zen .breathe{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.55);animation:breathe 8s ease-in-out infinite}
 @keyframes breathe{0%,100%{transform:scale(1);opacity:.35}50%{transform:scale(2.6);opacity:.8}}
 @media (prefers-reduced-motion: reduce){#zen,#zen .breathe,.eq i{animation:none}}
+.r30hero{display:grid;gap:16px;align-items:center}
+@media(min-width:820px){.r30hero{grid-template-columns:1.2fr 1fr 1fr}}
+.r30big{font-family:Fraunces,Georgia,serif;font-size:52px;font-weight:600;line-height:1}
+.yearbar{height:10px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:10px 0 4px;position:relative}
+.yearbar div{height:100%;background:var(--accent);border-radius:99px}
+.goals{display:grid;gap:14px}
+@media(min-width:720px){.goals{grid-template-columns:1fr 1fr}}
+.goal{display:flex;flex-direction:column;gap:8px}
+.goal.done{opacity:.7}
+.goal .gt{font-weight:600;font-size:16px;line-height:1.3}
+.goal .gm{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.goal .gbar{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.goal .gbar div{height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:14px}
+.steps li input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+.steps li.ok span{text-decoration:line-through;color:var(--ink-3)}
+.pill.warn{background:var(--break-soft);color:var(--break)}
+.areafilter{display:flex;gap:6px;flex-wrap:wrap}
+.areafilter button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:13px}
+.areafilter button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:9px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30}
 .toast.show{opacity:1}
 .hidden{display:none!important}
@@ -184,6 +205,7 @@ table.tv td.n{text-align:right;font-variant-numeric:tabular-nums}
       <button role="tab" data-tab="focus" aria-selected="true">Focus</button>
       <button role="tab" data-tab="track" aria-selected="false">Progress</button>
       <button role="tab" data-tab="log" aria-selected="false">Log</button>
+      <button role="tab" data-tab="r30" aria-selected="false">Road to 30</button>
     </nav>
   </header>
 
@@ -309,8 +331,66 @@ table.tv td.n{text-align:right;font-variant-numeric:tabular-nums}
       <div id="logList"></div>
     </div>
   </section>
+  <!-- ROAD TO 30 -->
+  <section id="tab-r30" class="grid hidden">
+    <div class="card r30hero">
+      <div>
+        <div class="muted">Days until you turn 30</div>
+        <div class="r30big" id="r30Days">–</div>
+        <div class="muted" id="r30Sub"></div>
+      </div>
+      <div>
+        <div class="muted" id="r30YearLbl">Your year</div>
+        <div class="yearbar"><div id="r30YearFill" style="width:0"></div></div>
+        <div class="muted" id="r30YearTxt"></div>
+      </div>
+      <div>
+        <div class="muted">Goal steps done</div>
+        <div class="big" id="r30Steps">0 / 0</div>
+        <div class="muted" id="r30Hours"></div>
+        <button class="btn small ghost" id="r30BdayBtn" style="padding-left:0">Change birthday</button>
+      </div>
+    </div>
+    <div class="toolbar" style="margin:0">
+      <div class="areafilter" id="r30Areas" style="flex:1"></div>
+      <button class="btn small" id="r30Add">+ Add goal</button>
+    </div>
+    <div class="goals" id="r30Goals"></div>
+  </section>
 </div>
 
+<!-- Goal dialog -->
+<div class="overlay" id="goalDlg" role="dialog" aria-modal="true" aria-labelledby="goalTitle">
+  <div class="dialog">
+    <h2 id="goalTitle">Goal</h2>
+    <label class="f" for="gName">Goal</label><input type="text" id="gName" maxlength="100">
+    <div class="row">
+      <div><label class="f" for="gArea">Area</label><select id="gArea"></select></div>
+      <div><label class="f" for="gDue">Target date</label><input type="date" id="gDue"></div>
+    </div>
+    <div class="row">
+      <div><label class="f" for="gSubj">Count study time from</label><select id="gSubj"></select></div>
+      <div><label class="f" for="gHours">Hours target (optional)</label><input type="number" id="gHours" min="0" max="2000"></div>
+    </div>
+    <label class="f" for="gSteps">Steps — one per line</label>
+    <textarea id="gSteps" style="min-height:120px" placeholder="Book the exam&#10;Finish practice tests&#10;Pass"></textarea>
+    <div class="actions">
+      <button class="btn danger" id="gDelete">Delete</button>
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="gCancel">Cancel</button>
+      <button class="btn primary" id="gSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Birthday dialog -->
+<div class="overlay" id="bdayDlg" role="dialog" aria-modal="true">
+  <div class="dialog" style="max-width:360px">
+    <h2>Your 30th birthday</h2>
+    <label class="f" for="bdayInput">Date you turn 30</label><input type="date" id="bdayInput">
+    <div class="actions"><button class="btn ghost" id="bdayCancel">Cancel</button><button class="btn primary" id="bdaySave">Save</button></div>
+  </div>
+</div>
 <!-- Session dialog -->
 <div class="overlay" id="sessDlg" role="dialog" aria-modal="true" aria-labelledby="sessTitle">
   <div class="dialog">
@@ -397,6 +477,13 @@ const DEFAULT_SETTINGS = {
   ],
   focusMin:25, shortMin:5, longMin:15, longEvery:4, goalMin:120
 };
+const DEFAULT_BIRTHDAY = null;
+const AREAS = ["Career","Learning","Life","Health","Money","Travel"];
+const g_ = (id,title,area,subject,due,steps,hours)=>({id,title,area,subject:subject||"",due:due||"",hours:hours||0,steps:steps.map((t,i)=>({id:id+"-"+i,text:t,done:false}))});
+const DEFAULT_GOALS = [];
+const getGoals = () => Array.isArray(settings.goals) ? settings.goals : DEFAULT_GOALS;
+const getBirthday = () => settings.birthday!==undefined ? settings.birthday : DEFAULT_BIRTHDAY;
+let r30Area = "";
 const DEFAULT_QUOTES = [
   {id:"q1", text:"Có công mài sắt, có ngày nên kim.", by:"Vietnamese proverb · grind iron long enough and it becomes a needle"},
   {id:"q2", text:"Chi va piano va sano e va lontano.", by:"Italian proverb · slow and steady goes far"},
@@ -920,6 +1007,64 @@ function renderLog(){
   }).join("");
 }
 
+function parseDay(k){ if(!k) return null; const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d).getTime(); }
+function renderR30(){
+  const goals=getGoals(), bday=parseDay(getBirthday()), today=startOfDay(Date.now());
+  if(bday){
+    const days=Math.round((bday-today)/864e5);
+    const startYear=new Date(bday); startYear.setFullYear(startYear.getFullYear()-1);
+    const total=Math.round((bday-startYear.getTime())/864e5), dayN=Math.min(total,Math.max(0,total-days));
+    $("#r30Days").textContent = days>0 ? days : (days===0 ? "Today 🎂" : "Done");
+    $("#r30Sub").textContent = days>0 ? (Math.floor(days/7)+" weeks "+(days%7)+" days · "+new Date(bday).toLocaleDateString(undefined,{day:"numeric",month:"long",year:"numeric"})) : "Happy 30th!";
+    $("#r30YearLbl").textContent="Your 29th year";
+    $("#r30YearFill").style.width=(dayN/total*100)+"%";
+    $("#r30YearTxt").textContent="Day "+dayN+" of "+total+" · "+Math.round(dayN/total*100)+"% of the year gone";
+  } else {
+    $("#r30Days").textContent="–"; $("#r30Sub").textContent="Set your birthday to start the countdown"; $("#r30YearTxt").textContent=""; $("#r30YearFill").style.width="0";
+  }
+  const allSteps=goals.reduce((a,g)=>a+g.steps.length,0), doneSteps=goals.reduce((a,g)=>a+g.steps.filter(x=>x.done).length,0);
+  $("#r30Steps").textContent=doneSteps+" / "+allSteps;
+  const since = bday ? (()=>{ const d=new Date(bday); d.setFullYear(d.getFullYear()-1); return d.getTime(); })() : 0;
+  const sess=allSessions().filter(x=>x.start>=since);
+  const totMin=sess.reduce((a,x)=>a+x.min,0);
+  $("#r30Hours").textContent=fmtMin(totMin)+" studied this year · "+goals.filter(g=>g.steps.length && g.steps.every(x=>x.done)).length+" goals complete";
+  // area filter
+  const areas=AREAS.filter(a=>goals.some(g=>g.area===a));
+  $("#r30Areas").innerHTML=['<button data-a="" class="'+(r30Area?"":"on")+'">All</button>'].concat(areas.map(a=>'<button data-a="'+a+'" class="'+(r30Area===a?"on":"")+'">'+a+'</button>')).join("");
+  const weekAgo=today-6*864e5;
+  const shown=goals.filter(g=>!r30Area||g.area===r30Area);
+  $("#r30Goals").innerHTML = shown.length ? shown.map(g=>{
+    const n=g.steps.length, d=g.steps.filter(x=>x.done).length, pct=n?Math.round(d/n*100):0, complete=n&&d===n;
+    let due=""; const dd=parseDay(g.due);
+    if(dd && !complete){ const left=Math.round((dd-today)/864e5); due='<span class="pill'+(left<=14?" warn":"")+'">'+(left<0? Math.abs(left)+" days overdue" : left===0?"due today": left+" days left")+'</span>'; }
+    let study="";
+    if(g.subject && subjById(g.subject)){
+      const mins=sess.filter(x=>x.subject===g.subject).reduce((a,x)=>a+x.min,0);
+      const wk=sess.filter(x=>x.subject===g.subject && x.start>=weekAgo).reduce((a,x)=>a+x.min,0);
+      study='<div class="muted"><span class="sw" style="background:'+subjColor(g.subject)+';margin-right:6px"></span>'+esc(subjName(g.subject))+': <b style="color:var(--ink)">'+fmtMin(mins)+'</b>'+(g.hours? ' of '+g.hours+'h':'')+' · '+fmtMin(wk)+' in the last 7 days</div>'+
+        (g.hours? '<div class="gbar" title="Study hours"><div style="width:'+Math.min(100,mins/(g.hours*60)*100)+'%;background:'+subjColor(g.subject)+'"></div></div>':'');
+    }
+    return '<div class="card goal'+(complete?" done":"")+'">'+
+      '<div style="display:flex;justify-content:space-between;gap:8px"><div class="gt">'+(complete?"✓ ":"")+esc(g.title)+'</div><button class="btn small ghost" data-gedit="'+esc(g.id)+'">Edit</button></div>'+
+      '<div class="gm"><span class="pill">'+esc(g.area)+'</span>'+due+'<span class="pill">'+d+'/'+n+' steps</span></div>'+
+      (n?'<div class="gbar"><div style="width:'+pct+'%"></div></div>':'')+study+
+      '<ul class="steps">'+g.steps.map(x=>'<li class="'+(x.done?"ok":"")+'"><input type="checkbox" data-g="'+esc(g.id)+'" data-s="'+esc(x.id)+'"'+(x.done?" checked":"")+' aria-label="'+esc(x.text)+'"><span>'+esc(x.text)+'</span></li>').join("")+'</ul>'+
+    '</div>';
+  }).join("") : '<div class="card empty">No goals yet. Add the first thing you want done before 30.</div>';
+}
+let editingGoal=null;
+function openGoal(g){
+  editingGoal=g||null;
+  $("#goalTitle").textContent=g?"Edit goal":"New goal";
+  $("#gName").value=g?g.title:""; $("#gDue").value=g?g.due:""; $("#gHours").value=g&&g.hours?g.hours:"";
+  $("#gArea").innerHTML=AREAS.map(a=>'<option>'+a+'</option>').join(""); $("#gArea").value=g?g.area:(r30Area||"Learning");
+  $("#gSubj").innerHTML='<option value="">— none —</option>'+settings.subjects.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join("");
+  $("#gSubj").value=g&&subjById(g.subject)?g.subject:"";
+  $("#gSteps").value=g?g.steps.map(x=>x.text).join("\n"):"";
+  $("#gDelete").classList.toggle("hidden",!g);
+  openOverlay("#goalDlg"); setTimeout(()=>$("#gName").focus(),50);
+}
+function saveGoals(list){ settings.goals=list; store.saveSettings(); renderR30(); }
 function renderSettings(){
   const set=(id,v)=>{ const el=$(id); if(document.activeElement!==el) el.value=v; };
   set("#setFocus",settings.focusMin); set("#setShort",settings.shortMin); set("#setLong",settings.longMin); set("#setEvery",settings.longEvery); set("#setGoal",settings.goalMin);
@@ -932,7 +1077,7 @@ function renderAll(){
   renderSettings();
   // keep idle timer in sync with settings
   if(!T.running && T.remaining===T.total && T.total!==modeMin(T.mode)*60000){ T.total=T.remaining=modeMin(T.mode)*60000; }
-  renderTimer(); renderToday(); renderStats(); renderChart(); renderLog(); renderQuote();
+  renderTimer(); renderToday(); renderStats(); renderChart(); renderLog(); renderQuote(); renderR30();
   if($("#quoteDlg").classList.contains("open")) renderQuoteList();
   if($("#subjDlg").classList.contains("open")) renderSubjects();
 }
@@ -940,7 +1085,7 @@ function renderAll(){
 /* ---------------- events ---------------- */
 $$("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
   $$("nav.tabs button").forEach(x=>x.setAttribute("aria-selected", x===b));
-  ["focus","track","log"].forEach(t=>$("#tab-"+t).classList.toggle("hidden", t!==b.dataset.tab));
+  ["focus","track","log","r30"].forEach(t=>$("#tab-"+t).classList.toggle("hidden", t!==b.dataset.tab));
   if(b.dataset.tab==="track") renderChart();
 }));
 $$("#modes button").forEach(b=>b.addEventListener("click",async()=>{
@@ -983,6 +1128,36 @@ $("#copyCsv").addEventListener("click",async()=>{
 });
 
 $("#qNext").addEventListener("click",nextQuote);
+$("#r30Areas").addEventListener("click",e=>{ const b=e.target.closest("[data-a]"); if(!b) return; r30Area=b.dataset.a; renderR30(); });
+$("#r30Add").addEventListener("click",()=>openGoal(null));
+$("#r30Goals").addEventListener("click",e=>{ const b=e.target.closest("[data-gedit]"); if(!b) return; const g=getGoals().find(x=>x.id===b.dataset.gedit); if(g) openGoal(g); });
+$("#r30Goals").addEventListener("change",e=>{
+  const c=e.target.closest("input[data-g]"); if(!c) return;
+  const list=JSON.parse(JSON.stringify(getGoals())); const g=list.find(x=>x.id===c.dataset.g); if(!g) return;
+  const st=g.steps.find(x=>x.id===c.dataset.s); if(!st) return; st.done=c.checked;
+  if(c.checked && g.steps.every(x=>x.done)) toast("Goal complete: "+g.title+" 🎉");
+  saveGoals(list);
+});
+$("#gCancel").addEventListener("click",()=>{ closeOverlay("#goalDlg"); editingGoal=null; });
+$("#gSave").addEventListener("click",()=>{
+  const title=$("#gName").value.trim(); if(!title){ toast("Give the goal a name"); return; }
+  const list=JSON.parse(JSON.stringify(getGoals()));
+  const old = editingGoal ? list.find(x=>x.id===editingGoal.id) : null;
+  const id = old ? old.id : "g"+uid();
+  const lines=$("#gSteps").value.split("\n").map(t=>t.trim()).filter(Boolean).slice(0,30);
+  const steps=lines.map((t,i)=>{ const prev=old && old.steps.find(x=>x.text===t); return prev? prev : {id:id+"-"+uid()+i,text:t,done:false}; });
+  const g={id,title,area:$("#gArea").value,subject:$("#gSubj").value,due:$("#gDue").value,hours:Math.max(0,parseInt($("#gHours").value,10)||0),steps};
+  if(old) list[list.indexOf(old)]=g; else list.push(g);
+  closeOverlay("#goalDlg"); editingGoal=null; saveGoals(list); toast(old?"Goal updated":"Goal added");
+});
+$("#gDelete").addEventListener("click",async()=>{
+  const g=editingGoal; if(!g) return; closeOverlay("#goalDlg");
+  if(await confirmBox('Delete the goal "'+g.title+'"?')) saveGoals(getGoals().filter(x=>x.id!==g.id));
+  editingGoal=null;
+});
+$("#r30BdayBtn").addEventListener("click",()=>{ $("#bdayInput").value=getBirthday()||""; openOverlay("#bdayDlg"); });
+$("#bdayCancel").addEventListener("click",()=>closeOverlay("#bdayDlg"));
+$("#bdaySave").addEventListener("click",()=>{ settings.birthday=$("#bdayInput").value||null; store.saveSettings(); closeOverlay("#bdayDlg"); renderR30(); });
 $("#vibes").addEventListener("click",e=>{ const b=e.target.closest("[data-v]"); if(b) setVibe(b.dataset.v); });
 $("#vibeVol").addEventListener("input",e=>{ vibe.vol=+e.target.value; saveVibe(); if(amb && audioCtx) amb.master.gain.setTargetAtTime(vibeTarget(),audioCtx.currentTime,0.05); });
 $("#vibeOnlyFocus").addEventListener("change",e=>{ ensureCtx(); vibe.onlyFocus=e.target.checked; saveVibe(); syncAmbience(); });
