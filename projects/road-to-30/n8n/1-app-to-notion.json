@@ -1,0 +1,560 @@
+{
+  "name": "Road to 30 · 1 · App to Notion",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-focus",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson",
+        "options": {
+          "allowedOrigins": "https://datawithkim.dev"
+        }
+      },
+      "id": "37e45cdb-0f29-4d3a-b6f6-81dd08db80e9",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "ee97de2d-1022-4d97-a55a-d8e2d894f250"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Study Focus -> Notion. Checks the key, then turns the app event into Notion properties.\nconst SECRET = 'CHANGE-ME-to-a-long-random-key'; // must match the key in the app's Notion sync settings\nconst SESSIONS_DB = '41c735e40e2581deacfbe66f8f77766f';\nconst GOALS_DB = '41c735e40e258189aa40dae4f51c9fcc';\nconst POSTS_DB = '41c735e40e258186845fd5323669362c';\n\nlet b = $json.body;\nif (typeof b === 'string') { try { b = JSON.parse(b); } catch (e) { b = {}; } }\nb = b || {};\nif (!SECRET || SECRET.startsWith('CHANGE-ME') || b.key !== SECRET) throw new Error('Invalid key');\n\nconst txt = (s, max = 1900) => [{ text: { content: String(s ?? '').slice(0, max) } }];\nconst sel = s => s ? { select: { name: String(s).replace(/,/g, ' ').slice(0, 100) } } : { select: null };\nconst num = n => ({ number: (n === '' || n == null || isNaN(+n)) ? null : +n });\nconst d = b.data || {};\n\nif (b.type === 'ping') return [{ json: { route: 'done', ok: true, message: 'n8n is connected' } }];\nif (b.type === 'pull_goals') return [{ json: { route: 'pull', db: GOALS_DB } }];\n\nif (b.type === 'session' || b.type === 'session_delete') {\n  const properties = {\n    'Working on': { title: txt(d.task || d.subject || 'Study session', 200) },\n    'Date': { date: { start: d.startLocal } },\n    'Minutes': num(d.min),\n    'Subject': sel(d.subject),\n    'Focus rating': num(d.rating || null),\n    'Distractions': num(d.kind === 'timer' ? d.distractions : null),\n    'Notes': { rich_text: txt(d.note) },\n    'Source': sel(d.kind),\n    'App ID': { rich_text: txt(d.id) },\n  };\n  return [{ json: { route: 'write', db: SESSIONS_DB, appId: String(d.id), archive: b.type === 'session_delete', properties, draft: null } }];\n}\n\nif (b.type === 'goal' || b.type === 'goal_delete') {\n  const steps = Array.isArray(d.steps) ? d.steps : [];\n  const done = steps.filter(s => s.done).length;\n  const status = steps.length && done === steps.length ? 'Done' : (done > 0 ? 'In progress' : 'Not started');\n  const properties = {\n    'Goal': { title: txt(d.title || 'Goal', 200) },\n    'Area': sel(d.area),\n    'Target date': { date: d.due ? { start: d.due } : null },\n    'Steps done': num(done),\n    'Steps total': num(steps.length),\n    'Status': sel(status),\n    'Steps': { rich_text: txt(steps.map(s => (s.done ? '☑ ' : '☐ ') + s.text).join('\\n')) },\n    'Linked subject': { rich_text: txt(d.subject || '') },\n    'Hours target': num(d.hours || null),\n    'App ID': { rich_text: txt(d.id) },\n  };\n  // A milestone draft for Threads when a step was just ticked (you approve it in Notion before it is posted)\n  let draft = null;\n  const newly = Array.isArray(d.newlyDone) ? d.newlyDone : [];\n  if (b.type === 'goal' && newly.length) {\n    const finished = status === 'Done';\n    const text = finished\n      ? `Goal complete: ${d.title} ✅\\n\\nOne more thing done on my Road to 30.\\n\\n#RoadTo30`\n      : `Small win on my Road to 30: ${newly.join(', ')} ✔️\\n\\n${d.title} · ${done}/${steps.length} steps done.\\n\\n#RoadTo30`;\n    draft = {\n      parent: { database_id: POSTS_DB },\n      properties: {\n        'Post': { title: txt((finished ? 'Goal complete: ' : 'Step done: ') + d.title, 200) },\n        'Text': { rich_text: txt(text, 500) },\n        'Status': { select: { name: 'Draft' } },\n        'Type': { select: { name: 'Milestone' } },\n      },\n    };\n  }\n  return [{ json: { route: 'write', db: GOALS_DB, appId: String(d.id), archive: b.type === 'goal_delete', properties, draft } }];\n}\n\nthrow new Error('Unknown event type: ' + b.type);\n"
+      },
+      "id": "f049856f-d9d4-4276-9fc4-e6c28ba28813",
+      "name": "Check key & prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "0902a332-f9bc-4071-87fc-e88f41e426a9",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "write",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "write"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "2ab95ecb-249e-45f2-9054-b55a87343807",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "pull",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pull"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "31089656-50f5-45d6-8331-96ff4e4e814f",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "done",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "done"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e83cce06-f8c5-4411-a02f-7240435311af",
+      "name": "Route",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/{{ $json.db }}/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { property: 'App ID', rich_text: { equals: $json.appId } }, page_size: 1 }) }}"
+      },
+      "id": "7a80ff6b-24eb-4ce1-930e-6691aa5f3d0a",
+      "name": "Find row by App ID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "aa06d00a-662c-4385-94e0-5837c188d291",
+              "leftValue": "={{ ($json.results || []).length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cc7a653d-0356-415c-b852-9b54e7012a16",
+      "name": "Row exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.results[0].id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Check key & prepare').item.json.archive ? { archived: true } : { properties: $('Check key & prepare').item.json.properties }) }}"
+      },
+      "id": "ff84530f-28d8-4dc3-b41a-73576b6317c6",
+      "name": "Update row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1140,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "2a65fc20-bc1d-46d5-88ef-159c9e4fac23",
+              "leftValue": "={{ $('Check key & prepare').item.json.archive === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "431c8372-5433-45c4-8187-78d972b65ef8",
+      "name": "Is a delete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: $('Check key & prepare').item.json.db }, properties: $('Check key & prepare').item.json.properties }) }}"
+      },
+      "id": "a6fe1fa6-8ab0-408e-9af5-7366b7c4f7ea",
+      "name": "Create row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "049dc569-fb9d-4722-bc81-eb38c85b6ed4",
+              "leftValue": "={{ !!$('Check key & prepare').item.json.draft }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "46260a07-9e8c-44a2-ad45-55be11817896",
+      "name": "Milestone draft?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Check key & prepare').item.json.draft) }}"
+      },
+      "id": "80551544-0893-4973-b840-627dc7a9a1e6",
+      "name": "Create Threads draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1820,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/{{ $json.db }}/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ page_size: 100 }) }}"
+      },
+      "id": "d8b42502-abf6-4347-bae9-bcc604a86622",
+      "name": "Get all goals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turn the Notion goals into the app's goal format\nconst out = [];\nfor (const item of $input.all()) {\n  for (const p of (item.json.results || [])) {\n    const pr = p.properties || {};\n    const plain = x => (x?.rich_text || x?.title || []).map(t => t.plain_text).join('');\n    const appId = plain(pr['App ID']) || p.id.replace(/-/g, '');\n    const steps = plain(pr['Steps']).split('\\n').map(s => s.trim()).filter(Boolean).map((s, i) => ({\n      id: appId + '-' + i,\n      text: s.replace(/^[☐☑☒]\\s*/, ''),\n      done: s.startsWith('☑') || s.startsWith('☒'),\n    }));\n    out.push({\n      id: appId,\n      title: plain(pr['Goal']),\n      area: pr['Area']?.select?.name || 'Learning',\n      due: pr['Target date']?.date?.start?.slice(0, 10) || '',\n      hours: pr['Hours target']?.number || 0,\n      subjectName: plain(pr['Linked subject']),\n      steps,\n    });\n  }\n}\nreturn [{ json: { ok: true, goals: out } }];\n"
+      },
+      "id": "099e15ef-51f7-4598-9c4d-03c552c81d78",
+      "name": "Format goals for the app",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        460
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ef577043-b690-4889-a467-a15b28a7d014",
+      "name": "Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2060,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check key & prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check key & prepare": {
+      "main": [
+        [
+          {
+            "node": "Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route": {
+      "main": [
+        [
+          {
+            "node": "Find row by App ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get all goals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find row by App ID": {
+      "main": [
+        [
+          {
+            "node": "Row exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Row exists?": {
+      "main": [
+        [
+          {
+            "node": "Update row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is a delete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row": {
+      "main": [
+        [
+          {
+            "node": "Milestone draft?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is a delete?": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create row": {
+      "main": [
+        [
+          {
+            "node": "Milestone draft?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Milestone draft?": {
+      "main": [
+        [
+          {
+            "node": "Create Threads draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Threads draft": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all goals": {
+      "main": [
+        [
+          {
+            "node": "Format goals for the app",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Rome"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
